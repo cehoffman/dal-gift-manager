@@ -1,0 +1,28 @@
+{
+  "name": "DAL Gift Manager",
+  "version": "0.8.1",
+  "description": "Take control of your gifts in DAL",
+  "background_page": "background.html",
+  "page_action": {
+    "default_icon": "icon16.png",
+    "default_title": "Claim your DAL gifts"
+  },
+  "permissions": [
+    "tabs",
+    "unlimitedStorage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://plus.google.com/*"
+      ],
+      "js": ["gift_claimer.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "icons": {
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
