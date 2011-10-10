@@ -1,7 +1,8 @@
 {
   "name": "DAL Gift Manager",
-  "version": "0.8.1",
+  "version": "0.8.3",
   "description": "Take control of your gifts in DAL",
+  "update_url": "http://dl.dropbox.com/u/66955/forums/bioware/updates.xml",
   "background_page": "background.html",
   "page_action": {
     "default_icon": "icon16.png",
