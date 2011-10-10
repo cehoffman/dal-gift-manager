@@ -20,7 +20,8 @@ function claimGifts() {
     return giftClaimer = void(0);
   }
 
-  var tabId = unclaimed.pop(), hash = unclaimed.pop(), gift = unclaimed.pop();
+  var gift = unclaimed.shift(), tabId = gift.pop(), hash = gift.pop();
+  gift = gift.shift();
 
   if (!localStorage[hash]) {
     localStorage[hash] = new Date();
