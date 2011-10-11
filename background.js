@@ -3,14 +3,10 @@ var unclaimed = [], giftClaimer, pendingClaim = {}, activeTabs = {};
 function giftHash(url) {
   var hash = url.match(/%22%3A%22(.*)%22%7D/);
   if (hash) {
-    return hash[1];
-  }
-}
-
-function notifyClaimed(hash) {
-  var msg = {markClaim: true, hash: hash},response = function(resp) {};
-  for (var tabId in activeTabs) {
-    chrome.tabs.sendRequest(+tabId, msg, response);
+    hash = JSON.parse(atob(hash[1]));
+    if (hash['page'] == 'acceptedGift' ) {
+      return hash['token'];
+    }
   }
 }
 
@@ -20,13 +16,12 @@ function claimGifts() {
     return giftClaimer = void(0);
   }
 
-  var gift = unclaimed.shift(), tabId = gift.pop(), hash = gift.pop();
+  var gift = unclaimed.shift(), hash = gift.pop();
   gift = gift.shift();
 
   if (!localStorage[hash]) {
     localStorage[hash] = new Date();
     delete pendingClaim[hash];
-    notifyClaimed(hash);
 
     if (!giftClaimer) {
       giftClaimer = true;
@@ -36,7 +31,7 @@ function claimGifts() {
     }
 
 
-    setTimeout(claimGifts, 12000);
+    // setTimeout(claimGifts, 12000);
   } else {
     claimGifts();
   }
@@ -45,15 +40,36 @@ function claimGifts() {
 chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
   if (request.checkClaim) {
     sendResponse(localStorage[giftHash(request.checkClaim)]);
-  } else if (request.markClaim && !localStorage[request.markClaim]) {
+  } else if (request.markClaim) {
     localStorage[request.markClaim] = new Date();
-    notifyClaimed(request.markClaim);
+    delete pendingClaim[request.markClaim];
+
+    // notify tabs that this gift is claimed
+    var msg = {markClaim: true, hash: request.markClaim},response = function(resp) {};
+    for (var tabId in activeTabs) {
+      chrome.tabs.sendRequest(+tabId, msg, response);
+    }
+
+    // If we are automating the claim process, continue onto next one
+    if (giftClaimer) {
+      claimGifts();
+    }
   } else if (request.activate) {
     activeTabs[sender.tab.id] = true;
     chrome.pageAction.show(sender.tab.id);
   } else if (request.deactivate) {
     delete activeTabs[sender.tab.id];
     chrome.pageAction.hide(sender.tab.id);
+  } else if (request.claimError) {
+    var hash = btoa(JSON.stringify({page: 'acceptedGift', token: request.claimError}));
+    unclaimed.push("https://plus.google.com/games/867517237916/params/" + encodeURIComponent(JSON.stringify({"encPrms": hash})) + "/source/3/")
+    if (giftClaimer) {
+      claimGifts()
+    }
+  } else if (request.claimTimeout) {
+    if (giftClaimer) {
+      claimGifts();
+    }
   }
 });
 
@@ -89,7 +105,7 @@ chrome.pageAction.onClicked.addListener(function(tab) {
           if (!pendingClaim[hash]) {
             pendingClaim[hash] = true;
             unclaimedGift = true;
-            unclaimed.push([msg.unclaimed, hash, tab.id]);
+            unclaimed.push([msg.unclaimed, hash]);
             if (!giftClaimer) {
               claimGifts()
             }

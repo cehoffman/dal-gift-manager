@@ -16,25 +16,20 @@ function matchPath(path) {
 function giftHash(url) {
   var hash = url.match(/%22%3A%22(.*)%22%7D/);
   if (hash) {
-    return hash[1];
+    try {
+      hash = JSON.parse(atob(hash[1]));
+    } catch (e) {}
+    if (hash['page'] == 'acceptedGift' ) {
+      return hash['token'];
+    }
   }
 }
 
 function isGiftPath(url) {
-  var hash;
   if (/\/games\/867517237916\//.test(url)) {
-    hash = giftHash(url);
-    return hash && hash.length == 92
+    return giftHash(url)
   }
 }
-
-function checkIfGiftPage() {
-  if (isGiftPath(window.location.pathname)) {
-    chrome.extension.sendRequest({markClaim: giftHash(window.location.pathname)}, function () {});
-  }
-}
-checkIfGiftPage()
-
 
 // Track our history so when we move between two pages we modify
 // we can reload the page because of funkyness in the dom manip
@@ -48,9 +43,6 @@ setInterval(function() {
     // Simulate that this is a fresh page load
     allGifts = {}
     lastGiftRound.length = 0;
-
-    // If the new page is a gift page need to mark it as used
-    checkIfGiftPage()
 
     if (matchPath(window.location.pathname)) {
       // Reload the page is we hit another page that we

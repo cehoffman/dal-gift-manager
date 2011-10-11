@@ -20,6 +20,14 @@
       "js": ["gift_claimer.js"],
       "run_at": "document_idle",
       "all_frames": false
+    },
+    {
+      "matches": [
+        "https://*.googleusercontent.com/gadgets/ifr?url=app://867517237916/game*"
+      ],
+      "js": ["gift_confirmation.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "icons": {
