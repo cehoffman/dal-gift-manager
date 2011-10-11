@@ -15,5 +15,18 @@ task :pack do
 end
 
 task :release => [:pack] do
-  File.rename($crx, File.join(File.expand_path("~/Dropbox/Public/forums/bioware"), $crx))
+  require 'uri'
+  dropbox = File.expand_path("~/Dropbox/Public/forums/bioware")
+
+  File.rename($crx, File.join(dropbox, $crx))
+  File.open(File.join(dropbox, 'updates.xml'), 'w') do |file|
+    file.write <<-EOF
+<?xml version='1.0' encoding='UTF-8'?>
+<gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
+<app appid='cmehgfokaheenheaihfbidcphngmkfkk'>
+<updatecheck codebase='http://dl.dropbox.com/u/66955/forums/bioware/#{URI.escape($crx)}' version='#$version' />
+</app>
+</gupdate>
+EOF
+  end
 end
