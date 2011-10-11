@@ -27,7 +27,7 @@
       ],
       "js": ["gift_confirmation.js"],
       "run_at": "document_idle",
-      "all_frames": true
+      "all_frames": false
     }
   ],
   "icons": {
