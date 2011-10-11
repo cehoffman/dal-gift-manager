@@ -40,12 +40,13 @@ function claimGifts() {
 chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
   if (request.checkClaim) {
     sendResponse(localStorage[giftHash(request.checkClaim)]);
-  } else if (request.markClaim) {
-    localStorage[request.markClaim] = new Date();
-    delete pendingClaim[request.markClaim];
+  } else if (request.markClaim || request.claimExpired) {
+    var hash = request.markClaim || request.claimExpired;
+    localStorage[hash] = new Date();
+    delete pendingClaim[hash];
 
     // notify tabs that this gift is claimed
-    var msg = {markClaim: true, hash: request.markClaim},response = function(resp) {};
+    var msg = {markClaim: true, hash: hash},response = function(resp) {};
     for (var tabId in activeTabs) {
       chrome.tabs.sendRequest(+tabId, msg, response);
     }

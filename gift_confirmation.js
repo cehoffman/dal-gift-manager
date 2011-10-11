@@ -28,6 +28,8 @@ if (token) {
         chrome.extension.sendRequest({markClaim: token});
       } else if (/\berror\b/i.test(confirmation)) {
         chrome.extension.sendRequest({claimError: token});
+      } else if (/\bexpired\b/.test(confirmation)) {
+        chrome.extension.sendRequest({claimExpired: token});
       }
     }
   }, 1000), timeout = setTimeout(function() {
