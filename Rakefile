@@ -5,6 +5,7 @@ $version = JSON.parse(File.read('manifest.json'))['version']
 $crx = "#$name v#$version.crx"
 
 $chrome = "C:\\Users\\Chris Hoffman\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"
+
 task :pack do
   system 'git', 'checkout-index', '-f', '-a', "--prefix=#{File.join($name, '')}"
   system $chrome, "--pack-extension=#{File.join(Dir.pwd, $name)}", "--pack-extension-key=#{File.join(Dir.pwd, "#$name.pem")}", '--no-message-box'
