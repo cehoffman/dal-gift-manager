@@ -20,9 +20,6 @@ function claimGifts() {
   gift = gift.shift();
 
   if (!localStorage[hash]) {
-    localStorage[hash] = new Date();
-    delete pendingClaim[hash];
-
     if (!giftClaimer) {
       giftClaimer = true;
       chrome.tabs.create({url: gift, selected: false}, function(tab) { giftClaimer = tab; })
