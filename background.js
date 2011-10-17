@@ -63,6 +63,12 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     if (giftClaimer) {
       claimGifts();
     }
+  } else if (request.addGifter) {
+    var gifters = JSON.parse(localStorage.getItem('gifters') || '[]');
+    gifters.push(request.addGifter);
+    localStorage.setItem('gifters', JSON.stringify(gifters));
+  } else if (request.getGifters) {
+    sendResponse(JSON.parse(localStorage.getItem('gifters') || 'null'));
   }
 });
 
@@ -79,6 +85,7 @@ chrome.pageAction.onClicked.addListener(function(tab) {
     var cutoff = new Date() - 1000 * 60 * 60 * 24 * 7
     for (var key in localStorage) {
       if (Object.prototype.hasOwnProperty.call(localStorage, key)) {
+        if (key === 'gifters') { continue; }
         if (new Date(localStorage[key]) < cutoff) {
           delete localStorage[key];
         }

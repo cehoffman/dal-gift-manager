@@ -34,6 +34,34 @@ if (token) {
         // We couldn't find that gift in our databases. A hurlock must have stolen it!
         chrome.extension.sendRequest({claimStolen: token});
       }
+
+      chrome.extension.sendRequest({getGifters: true}, function(gifters) {
+        for (var i = 0, len = gifters.length; i < len; i++) {
+          gifters[i] = "" + gifters[i];
+        }
+        var tabs = document.getElementById('tabs'), link = document.createElement('a');
+        link.setAttribute('class', 'tab');
+        // link.setAttribute('onclick', "com.ea2d.mysocial.gifting(" + JSON.stringify(gifters) + ", {page: 'acceptedGift', token: com.ea2d.mysocial.generateUUID()});");
+        // link.setAttribute('onclick', 'console.log(giftingParams)');
+        link.setAttribute('onclick', "(" + (function(gifters) {
+          requestGifting(true, {url: giftingParams.url, success: function (data) {
+            onGiftContainerShow(data);
+            var buttons = document.getElementById('giftForm').getElementsByClassName('giftHeadline')[0],
+                link = buttons.childNodes[1];
+                // link = document.createElement('input');
+            // link.setAttribute('type', 'button');
+            // link.setAttribute('class', 'giftButton giftSendButton');
+            link.setAttribute('value', 'Send to loyal Friends >>');
+            link.setAttribute('onclick', "com.ea2d.social.oz.gifting('" + gifters.join(',') + "', {page: 'acceptedGift', token: com.ea2d.social.oz.generateUUID()});")
+          }, data: giftingParams.data});
+        }).toString().slice(0, -2) + "})(" + JSON.stringify(gifters) + ");");
+        link.id = "customTab";
+        link.innerText = 'Test Connect';
+        tabs.insertBefore(link, tabs.childNodes[0]);//appendChild(link);
+        // buttons.insertBefore(link, buttons.childNodes[0]);
+
+        // buttons.childNodes[1].setAttribute('onclick', )
+      });
     }
   }, 1000), timeout = setTimeout(function() {
     clearInterval(giftCheck);
