@@ -2,27 +2,32 @@ var unclaimed = [], giftClaimer, pendingClaim = {}, activeTabs = {};
 
 function claimGifts() {
   if (unclaimed.length == 0) {
-    chrome.tabs.remove(giftClaimer.id)
-    return giftClaimer = void(0);
-  }
-
-  var gift = unclaimed.shift(), hash = gift.pop();
-  gift = gift.shift();
-
-  if (!localStorage[hash]) {
-    if (!giftClaimer) {
-      giftClaimer = true;
-      chrome.tabs.create({url: gift, selected: false}, function(tab) { giftClaimer = tab; })
-    } else {
-      chrome.tabs.update(giftClaimer.id, {url: gift})
-    }
-
-
-    // setTimeout(claimGifts, 12000);
+    chrome.tabs.remove(giftClaimer.id);
   } else {
-    claimGifts();
+    var gift = unclaimed.shift(), hash = gift.pop();
+    gift = gift.shift();
+
+    if (!localStorage[hash]) {
+      if (!giftClaimer) {
+        giftClaimer = true;
+        chrome.tabs.create({url: gift, selected: false}, function(tab) { giftClaimer = tab; })
+      } else {
+        chrome.tabs.update(giftClaimer.id, {url: gift})
+      }
+
+
+      // setTimeout(claimGifts, 12000);
+    } else {
+      claimGifts();
+    }
   }
 }
+
+chrome.tabs.onRemoved.addListener(function(tabId) {
+  if (giftClaimer && giftClaimer.id === tabId) {
+    giftClaimer = void 0;
+  }
+});
 
 chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
   if (request.checkClaim) {
