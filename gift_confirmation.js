@@ -30,6 +30,9 @@ if (token) {
         chrome.extension.sendRequest({claimError: token});
       } else if (/\bexpired\b/.test(confirmation)) {
         chrome.extension.sendRequest({claimExpired: token});
+      } else if (/\bstolen\b/.test(confirmation)) {
+        // We couldn't find that gift in our databases. A hurlock must have stolen it!
+        chrome.extension.sendRequest({claimStolen: token});
       }
     }
   }, 1000), timeout = setTimeout(function() {
