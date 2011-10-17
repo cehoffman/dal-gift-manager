@@ -55,9 +55,9 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     chrome.pageAction.hide(sender.tab.id);
   } else if (request.claimError) {
     var hash = btoa(JSON.stringify({page: 'acceptedGift', token: request.claimError}));
-    unclaimed.push("https://plus.google.com/games/867517237916/params/" + encodeURIComponent(JSON.stringify({"encPrms": hash})) + "/source/3")
+    unclaimed.push(["https://plus.google.com/games/867517237916/params/" + encodeURIComponent(JSON.stringify({"encPrms": hash})) + "/source/3", request.claimError]);
     if (giftClaimer) {
-      claimGifts()
+      claimGifts();
     }
   } else if (request.claimTimeout) {
     if (giftClaimer) {
