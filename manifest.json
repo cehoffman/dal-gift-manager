@@ -17,7 +17,7 @@
       "matches": [
         "https://plus.google.com/*"
       ],
-      "js": ["gift_claimer.js"],
+      "js": ["lib.js", "gift_claimer.js"],
       "run_at": "document_idle",
       "all_frames": false
     },
@@ -27,7 +27,7 @@
       ],
       "js": ["gift_confirmation.js"],
       "run_at": "document_idle",
-      "all_frames": false
+      "all_frames": true
     }
   ],
   "icons": {

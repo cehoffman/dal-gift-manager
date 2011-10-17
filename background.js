@@ -1,15 +1,5 @@
 var unclaimed = [], giftClaimer, pendingClaim = {}, activeTabs = {};
 
-function giftHash(url) {
-  var hash = url.match(/%22%3A%22(.*)%22%7D/);
-  if (hash) {
-    hash = JSON.parse(atob(hash[1]));
-    if (hash['page'] == 'acceptedGift' ) {
-      return hash['token'];
-    }
-  }
-}
-
 function claimGifts() {
   if (unclaimed.length == 0) {
     chrome.tabs.remove(giftClaimer.id)

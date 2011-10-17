@@ -13,18 +13,6 @@ function matchPath(path) {
          /^\/(u\/\d+\/)?games\/notifications/.test(path)
 }
 
-function giftHash(url) {
-  var hash = url.match(/%22%3A%22(.*)%22%7D/);
-  if (hash) {
-    try {
-      hash = JSON.parse(atob(hash[1]));
-    } catch (e) {}
-    if (hash['page'] == 'acceptedGift' ) {
-      return hash['token'];
-    }
-  }
-}
-
 function isGiftPath(url) {
   if (/\/games\/867517237916\//.test(url)) {
     return giftHash(url)
