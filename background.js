@@ -78,6 +78,8 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     }, 1000);
   } else if (request.isSendingGift) {
     sendResponse(!!giftTabs[sender.tab.id]);
+  } else if (request.continueGifting) {
+    chrome.tabs.sendRequest(sender.tab.id, request);
   }
 });
 

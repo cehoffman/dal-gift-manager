@@ -64,7 +64,10 @@ var waitingToDetect, waitToScroll = function() {
         event.initEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
         preview[0].dispatchEvent(event);
 
-        chrome.extension.sendRequest({continueGifting: true});
+        if (selected.length < gifters.length) {
+          chrome.extension.sendRequest({continueGifting: true});
+        } else {
+        }
       }, 100);
 
       break;
