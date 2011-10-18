@@ -1,4 +1,4 @@
-var unclaimed = [], giftClaimer, pendingClaim = {}, activeTabs = {};
+var unclaimed = [], giftClaimer, pendingClaim = {}, activeTabs = {}, giftTabs = {};
 
 function claimGifts() {
   if (unclaimed.length == 0) {
@@ -71,6 +71,13 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     }
   } else if (request.getGifters) {
     sendResponse(JSON.parse(localStorage.getItem('gifters') || 'null'));
+  } else if (request.sendingGift) {
+    giftTabs[sender.tab.id] = {};
+    setTimeout(function() {
+      delete giftTabs[sender.tab.id];
+    }, 1000);
+  } else if (request.isSendingGift) {
+    sendResponse(!!giftTabs[sender.tab.id]);
   }
 });
 
