@@ -60,12 +60,12 @@ setInterval(function() {
 
 
 function findGifts() {
-  var hash, items = window.document.getElementsByClassName('c-i-j-ua');
+  var hash, items = window.document.getElementsByClassName('c-i-j-ua'), el;
   lastGiftRound.length = 0;
 
   for (var i = 0, len = items.length; i < len ; i++) {
     el = items[i];
-    if (el.text === 'Play now' && isGiftPath(el.href)) {
+    if (el.childNodes[0].nodeName === '#text' && isGiftPath(el.href)) {
       var hash = giftHash(el.href);
       if (!allGifts[hash]) {
         allGifts[hash] = el;
