@@ -65,8 +65,10 @@ chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
     }
   } else if (request.addGifter) {
     var gifters = JSON.parse(localStorage.getItem('gifters') || '[]');
-    gifters.push(request.addGifter);
-    localStorage.setItem('gifters', JSON.stringify(gifters));
+    if (gifters.indexOf(request.addGifter) < 0) {
+      gifters.push(request.addGifter);
+      localStorage.setItem('gifters', JSON.stringify(gifters));
+    }
   } else if (request.getGifters) {
     sendResponse(JSON.parse(localStorage.getItem('gifters') || 'null'));
   }

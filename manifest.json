@@ -28,6 +28,14 @@
       "js": ["gift_confirmation.js"],
       "run_at": "document_idle",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "https://plus.google.com/u/*/_/gadgets/contactPicker*"
+      ],
+      "js": ["gift_sending.js"],
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ],
   "icons": {

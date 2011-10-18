@@ -75,7 +75,7 @@ function findGifts() {
             decorateGift(gift, claimed);
           });
           if (/games\/notifications/.test(window.location.pathname)) {
-            chrome.extension.sendRequest({addGifter: +el.parentElement.parentElement.parentElement.childNodes[0].childNodes[0].childNodes[0].href.match(/\/(\d+)$/)[1] });
+            chrome.extension.sendRequest({addGifter: el.parentElement.parentElement.parentElement.childNodes[0].childNodes[0].childNodes[0].href.match(/\/(\d+)$/)[1] });
           }
         }(el);
       }
