@@ -210,7 +210,7 @@
                       keyPath = index.keyPath;
                     }
 
-                    if (options.conditions[keyPath] instanceof Array) {
+                    if (_.isArray(options.conditions[keyPath])) {
                         lower = options.conditions[keyPath][0] > options.conditions[keyPath][1] ? options.conditions[keyPath][1] : options.conditions[keyPath][0];
                         upper = options.conditions[keyPath][0] > options.conditions[keyPath][1] ? options.conditions[keyPath][0] : options.conditions[keyPath][1];
                         bounds = IDBKeyRange.bound(lower, upper, true, true);
