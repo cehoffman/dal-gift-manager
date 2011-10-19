@@ -368,10 +368,10 @@
 
         execute: function (message) {
             if (this.error) {
-                message[2].error(this.error);
+                message[3].error(this.error);
             } else {
                 if (this.started) {
-                    this.driver.execute(this.connection, message[1].storeName, message[0], message[1], message[2]); // Upon messages, we execute the query
+                    this.driver.execute(this.connection, message[2], message[0], message[1], message[3]); // Upon messages, we execute the query
                 } else {
                     this.stack.push(message);
                 }
@@ -381,12 +381,18 @@
     };
 
     Backbone.sync = function (method, object, options) {
-        var database = object.database;
-        var driver = new Driver();
+        var database, storeName, driver = new Driver();
+        if (object instanceof Backbone.Collection) {
+          database = object.model.prototype.database;
+          storeName = object.model.prototype.storeName;
+        } else {
+          database = object.database;
+          storeName = object.storeName;
+        }
 
         if (!Connections[database.id]) {
             Connections[database.id] = new ExecutionQueue(driver, database);
         }
-        Connections[database.id].execute([method, object, options]);
+        Connections[database.id].execute([method, object, storeName, options]);
     };
 })();
