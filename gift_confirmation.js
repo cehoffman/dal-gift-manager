@@ -25,6 +25,9 @@ if (token) {
       clearInterval(giftCheck);
       confirmation = confirmation[0].innerText;
       if (/\b(successfully|already)\b/i.test(confirmation)) {
+        Account.claimGift(token, function(gift) {
+          console.log(arguments);
+        })
         chrome.extension.sendRequest({markClaim: token});
       } else if (/\berror\b/i.test(confirmation)) {
         chrome.extension.sendRequest({claimError: token});

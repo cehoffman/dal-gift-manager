@@ -17,7 +17,7 @@
       "matches": [
         "https://plus.google.com/*"
       ],
-      "js": ["lib.js", "gift_claimer.js"],
+      "js": ["src/lib.js", "src/account.js", "gift_claimer.js"],
       "run_at": "document_idle",
       "all_frames": false
     },
@@ -25,7 +25,7 @@
       "matches": [
         "https://*.googleusercontent.com/gadgets/ifr?url=app://867517237916/game*"
       ],
-      "js": ["gift_confirmation.js"],
+      "js": ["src/lib.js", "src/account.js", "gift_confirmation.js"],
       "run_at": "document_idle",
       "all_frames": true
     },
@@ -33,7 +33,7 @@
       "matches": [
         "https://plus.google.com/u/*/_/gadgets/contactPicker*"
       ],
-      "js": ["gift_sending.js"],
+      "js": ["src/lib.js", "src/account.js", "gift_sending.js"],
       "run_at": "document_idle",
       "all_frames": true
     }

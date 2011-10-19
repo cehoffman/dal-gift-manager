@@ -6,7 +6,11 @@ $crx = "#$name v#$version.crx"
 
 $chrome = "C:\\Users\\Chris Hoffman\\AppData\\Local\\Google\\Chrome\\Application\\chrome.exe"
 
-task :pack do
+task :compile do
+  system 'coffee', '--output', 'src', '--bare', '--compile', 'lib'
+end
+
+task :pack => [:compile] do
   system 'git', 'checkout-index', '-f', '-a', "--prefix=#{File.join($name, '')}"
   system $chrome, "--pack-extension=#{File.join(Dir.pwd, $name)}", "--pack-extension-key=#{File.join(Dir.pwd, "#$name.pem")}", '--no-message-box'
   File.rename("#$name.crx", $crx)
