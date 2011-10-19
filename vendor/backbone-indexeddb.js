@@ -181,9 +181,9 @@
         // - range : range for the primary key
         // - limit : max number of elements to be yielded
         // - offset : skipped items.
+        // - order : how to order the final results
         query: function (db, storeName, collection, options) {
             var elements = {}, completedCursors = 0;
-            var skipped = 0, processed = 0;
             var queryTransaction = db.transaction([storeName], IDBTransaction.READ_WRITE);
             var readCursors = {};
             var store = queryTransaction.objectStore(storeName);
@@ -215,13 +215,18 @@
                         upper = options.conditions[keyPath][0] > options.conditions[keyPath][1] ? options.conditions[keyPath][0] : options.conditions[keyPath][1];
                         bounds = IDBKeyRange.bound(lower, upper, true, true);
                         
-                        if (options.conditions[keyPath][0] > options.conditions[keyPath][1]) {
-                            // Looks like we want the DESC order
-                            readCursors[keyPath] = index.openCursor(bounds, 2);
-                        } else {
-                            // We want ASC order
-                            readCursors[keyPath] = index.openCursor(bounds, 0);
+                        if (!options.order && _.size(options.conditions) === 1) {
+                            if (options.conditions[keyPath][0] > options.conditions[keyPath][1]) {
+                                // Looks like we want the DESC order
+                                options.order = {}
+                                options.order[keyPath] == 'desc';
+                            } else {
+                                // We want ASC order
+                                options.order = keyPath;
+                            }
                         }
+
+                        readCursors[keyPath] = index.openCursor(bounds);
                     } else if (options.conditions[keyPath]) {
                         bounds = IDBKeyRange.only(options.conditions[keyPath]);
                         readCursors[keyPath]= index.openCursor(bounds);
@@ -247,8 +252,15 @@
                                 })
 
                                 if (options.order) {
-                                    results = _.sortBy(results, function(item) {
-                                        return item[options.order];
+                                    var prop, dir;
+                                    if (_.isString(options.order)) {
+                                      prop = options.order;
+                                      dir = 'asc';
+                                    } else {
+                                      _.each(options.order, function(value, key) { prop = key, dir = value; });
+                                    }
+                                    results = results.sort(function(left, right) {
+                                      return left[prop] < right[prop] ? dir === 'asc' ? -1 : 1 : left[prop] > right[prop] ? dir === 'asc' ? 1 : -1 : 0;
                                     });
                                 }
 
