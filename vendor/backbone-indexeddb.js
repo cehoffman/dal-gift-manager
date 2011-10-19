@@ -182,104 +182,116 @@
         // - limit : max number of elements to be yielded
         // - offset : skipped items.
         query: function (db, storeName, collection, options) {
-            var elements = [];
+            var elements = {}, completedCursors = 0;
             var skipped = 0, processed = 0;
             var queryTransaction = db.transaction([storeName], IDBTransaction.READ_WRITE);
-            var readCursor = null;
+            var readCursors = {};
             var store = queryTransaction.objectStore(storeName);
             var index = null,
                 lower = null,
                 upper = null,
-                bounds = null;
+                bounds = null,
+                keyPath = null;
+
+            if (options.range) {
+              options.conditions = options.conditons || {};
+              options.conditions.id = options.range;
+              delete options.range;
+            }
 
             if (options.conditions) {
                 // We have a condition, we need to use it for the cursor
-                _.each(store.indexNames, function (key) {
-                    if (!readCursor) {
-                        index = store.index(key);
-                        if (options.conditions[index.keyPath] instanceof Array) {
-                            lower = options.conditions[index.keyPath][0] > options.conditions[index.keyPath][1] ? options.conditions[index.keyPath][1] : options.conditions[index.keyPath][0];
-                            upper = options.conditions[index.keyPath][0] > options.conditions[index.keyPath][1] ? options.conditions[index.keyPath][0] : options.conditions[index.keyPath][1];
-                            bounds = IDBKeyRange.bound(lower, upper, true, true);
-                            
-                            if (options.conditions[index.keyPath][0] > options.conditions[index.keyPath][1]) {
-                                // Looks like we want the DESC order
-                                readCursor = index.openCursor(bounds, 2);
-                            } else {
-                                // We want ASC order
-                                readCursor = index.openCursor(bounds, 0);
-                            }
-                        } else if (options.conditions[index.keyPath]) {
-                            bounds = IDBKeyRange.only(options.conditions[index.keyPath]);
-                            readCursor = index.openCursor(bounds);
+                _.each(['id'].concat(Array.prototype.slice.apply(store.indexNames)), function (key) {
+                    if (key === 'id') {
+                      index = store;
+                      keyPath = 'id';
+                    } else {
+                      index = store.index(key);
+                      keyPath = index.keyPath;
+                    }
+
+                    if (options.conditions[keyPath] instanceof Array) {
+                        lower = options.conditions[keyPath][0] > options.conditions[keyPath][1] ? options.conditions[keyPath][1] : options.conditions[keyPath][0];
+                        upper = options.conditions[keyPath][0] > options.conditions[keyPath][1] ? options.conditions[keyPath][0] : options.conditions[keyPath][1];
+                        bounds = IDBKeyRange.bound(lower, upper, true, true);
+                        
+                        if (options.conditions[keyPath][0] > options.conditions[keyPath][1]) {
+                            // Looks like we want the DESC order
+                            readCursors[keyPath] = index.openCursor(bounds, 2);
+                        } else {
+                            // We want ASC order
+                            readCursors[keyPath] = index.openCursor(bounds, 0);
                         }
+                    } else if (options.conditions[keyPath]) {
+                        bounds = IDBKeyRange.only(options.conditions[keyPath]);
+                        readCursors[keyPath]= index.openCursor(bounds);
                     }
                 });
             } else {
-                // No conditions, use the index
-                if (options.range) {
-                    lower = options.range[0] > options.range[1] ? options.range[1] : options.range[0];
-                    upper = options.range[0] > options.range[1] ? options.range[0] : options.range[1];
-                    bounds = IDBKeyRange.bound(lower, upper);
-                    if (options.range[0] > options.range[1]) {
-                        readCursor = store.openCursor(bounds, 2);
-                    } else {
-                        readCursor = store.openCursor(bounds, 0);
-                    }
-                } else {
-                    readCursor = store.openCursor();
-                }
+              readCursors['id'] = store.openCursor();
             }
             
-            if (typeof (readCursor) == "undefined" || !readCursor) {
+            if (_.isEmpty(readCursors)) {
                 options.error("No Cursor");
             } else {
-                // Setup a handler for the cursor’s `success` event:
-                readCursor.onsuccess = function (e) {
-                    var cursor = e.target.result;
-                    if (!cursor) {
-                        if (options.addIndividually || options.clear) {
-                            // nothing!
-                            // We need to indicate that we're done. But, how?
-                            collection.trigger("reset");
-                        } else {
-                            options.success(elements); // We're done. No more elements.
-                        }
-                    }
-                    else {
-                        // Cursor is not over yet.
-                        if (options.limit && processed >= options.limit) {
-                            // Yet, we have processed enough elements. So, let's just skip.
-                            if (bounds && options.conditions[index.keyPath]) {
-                                cursor.continue(options.conditions[index.keyPath][1] + 1); /* We need to 'terminate' the cursor cleany, by moving to the end */
-                            } else {
-                                cursor.continue(); /* We need to 'terminate' the cursor cleany, by moving to the end */
+                _.each(readCursors, function(readCursor, key) {
+                    // Setup a handler for the cursor’s `success` event:
+                    readCursor.onsuccess = function (e) {
+                        var cursor = e.target.result;
+                        if (!cursor) {
+                            if (++completedCursors === _.size(readCursors)) {
+                                var smallest = _.min(elements, function(value) {
+                                    return _.size(value);
+                                }), results = _.select(_.size(smallest) > 0 ? smallest : [], function(value, key) {
+                                    return _.all(elements, function(value) { return value[key] });
+                                })
+
+                                if (options.order) {
+                                    results = _.sortBy(results, function(item) {
+                                        return item[options.order];
+                                    });
+                                }
+
+                                if (options.offset) {
+                                    results = results.slice(options.offset);
+                                }
+
+                                if (options.limit) {
+                                    results = results.slice(0, options.limit);
+                                }
+
+                                if (_.isEmpty(results)) {
+                                    collection.trigger('reset');
+                                } else if (options.addIndividually) {
+                                    _.each(results, function(item) {
+                                        collection.add(item);
+                                    });
+                                } else if (options.clear) {
+                                    var completedDeletes = 0;
+                                    _.each(results, function(item) {
+                                        var deleteRequest = store.delete(cursor.value.id);
+                                        deleteRequest.onsuccess = function(event) {
+                                            if (++compeltedDeletes == _.size(results)) {
+                                                options.success(results);
+                                            }
+                                        }
+
+                                        // No idea if this is the right thing to do
+                                        deleteRequest.onerror = function(event) {
+                                            options.error(item);
+                                        }
+                                    });
+                                } else {
+                                    options.success(results);
+                                }
                             }
-                        }
-                        else if (options.offset && options.offset > skipped) {
-                            skipped++;
-                            cursor.continue(options.offset - skipped); /* We need to Moving the cursor forward */
                         } else {
-                            // This time, it looks like it's good!
-                            processed++;
-                            if (options.addIndividually) {
-                                collection.add(cursor.value);
-                            } else if (options.clear) {
-                                var deleteRequest = store.delete(cursor.value.id);
-                                deleteRequest.onsuccess = function (event) {
-                                    elements.push(cursor.value);
-                                };
-                                deleteRequest.onerror = function (event) {
-                                    elements.push(cursor.value);
-                                };
-                                
-                            } else {
-                                elements.push(cursor.value);
-                            }
-                            cursor.continue(); 
+                          elements[key] = elements[key] || {};
+                          elements[key][cursor.value.id] = cursor.value;
+                          cursor.continue();
                         }
-                    }
-                };
+                    };
+                });
             }
         }
     };
