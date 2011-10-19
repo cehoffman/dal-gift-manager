@@ -115,7 +115,7 @@
 
             if (!json.id) json.id = guid();
 
-            var writeRequest = store.put(json, json.id);
+            var writeRequest = store.put(json);
 
             writeRequest.onerror = function (e) {
                 options.error(e);
@@ -215,16 +215,16 @@
                         upper = options.conditions[keyPath][0] > options.conditions[keyPath][1] ? options.conditions[keyPath][0] : options.conditions[keyPath][1];
                         bounds = IDBKeyRange.bound(lower, upper, true, true);
                         
-                        if (!options.order && _.size(options.conditions) === 1) {
-                            if (options.conditions[keyPath][0] > options.conditions[keyPath][1]) {
-                                // Looks like we want the DESC order
-                                options.order = {}
-                                options.order[keyPath] == 'desc';
-                            } else {
-                                // We want ASC order
-                                options.order = keyPath;
-                            }
-                        }
+                        // if (!options.order && _.size(options.conditions) === 1) {
+                        //     if (options.conditions[keyPath][0] > options.conditions[keyPath][1]) {
+                        //         // Looks like we want the DESC order
+                        //         options.order = {}
+                        //         options.order[keyPath] == 'desc';
+                        //     } else {
+                        //         // We want ASC order
+                        //         options.order = keyPath;
+                        //     }
+                        // }
 
                         readCursors[keyPath] = index.openCursor(bounds);
                     } else if (options.conditions[keyPath]) {
@@ -251,18 +251,18 @@
                                     return _.all(elements, function(value) { return value[key] });
                                 })
 
-                                if (options.order) {
-                                    var prop, dir;
-                                    if (_.isString(options.order)) {
-                                      prop = options.order;
-                                      dir = 'asc';
-                                    } else {
-                                      _.each(options.order, function(value, key) { prop = key, dir = value; });
-                                    }
-                                    results = results.sort(function(left, right) {
-                                      return left[prop] < right[prop] ? dir === 'asc' ? -1 : 1 : left[prop] > right[prop] ? dir === 'asc' ? 1 : -1 : 0;
-                                    });
-                                }
+                                // if (options.order) {
+                                //     var prop, dir;
+                                //     if (_.isString(options.order)) {
+                                //       prop = options.order;
+                                //       dir = 'asc';
+                                //     } else {
+                                //       _.each(options.order, function(value, key) { prop = key, dir = value; });
+                                //     }
+                                //     results = results.sort(function(left, right) {
+                                //       return left[prop] < right[prop] ? dir === 'asc' ? -1 : 1 : left[prop] > right[prop] ? dir === 'asc' ? 1 : -1 : 0;
+                                //     });
+                                // }
 
                                 if (options.offset) {
                                     results = results.slice(options.offset);
@@ -273,11 +273,11 @@
                                 }
 
                                 if (_.isEmpty(results)) {
-                                    collection.trigger('reset');
-                                } else if (options.addIndividually) {
-                                    _.each(results, function(item) {
-                                        collection.add(item);
-                                    });
+                                    options.success([]);
+                                // } else if (options.addIndividually) {
+                                //     _.each(results, function(item) {
+                                //         collection.add(item);
+                                //     });
                                 } else if (options.clear) {
                                     var completedDeletes = 0;
                                     _.each(results, function(item) {
@@ -290,7 +290,7 @@
 
                                         // No idea if this is the right thing to do
                                         deleteRequest.onerror = function(event) {
-                                            options.error(item);
+                                            options.error(event);
                                         }
                                     });
                                 } else {
