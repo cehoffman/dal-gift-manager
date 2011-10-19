@@ -13,6 +13,9 @@ class Account
   unclaimedGifts: (callback) ->
     (new Gifts()).fetch(conditions: {toAccount: @id, status: 'unclaimed'}, success: callback)
 
+  errorGifts: (callback) ->
+    (new Gifts()).fetch(conditions: {toAccount: @id, status: 'error'}, success: callback)
+
   hasClaimedGift: (id, callback) ->
     (new Gift({token: id, toAccount: @id})).fetch(success: (-> callback(true)), error: (-> callback(false)))
 
@@ -33,8 +36,7 @@ class Account
         gift.save({}, success: callback)
 
   addGiftFromFriend: (token, friendId, callback) ->
-    addGift(token, -> addGifter(friendId, callback))
-
+    @addGift(token, -> @addGifter(friendId, callback))
 
   addGifter: (id, callback) ->
     (new Gifter({toAccount: @id, gplusId: id})).fetch
@@ -43,7 +45,7 @@ class Account
       error: (model) ->
         model.save({}, success: callback, error: callback)
 
-  addActiveTab: (callback, sender) ->
+  addTab: (callback, sender) ->
     (@activeTabs ||= {})[sender.tab.id] = true
     null
 
