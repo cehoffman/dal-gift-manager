@@ -167,7 +167,9 @@ if window.location.protocol isnt 'chrome-extension:'
         chrome.extension.sendRequest(item...)
       document.body.removeChild(idDiv)
 
-    Event(idDiv).click()
+    # Gift google some time to do its login so we don't
+    # hit the url too much, e.g. once unauthed and once authed
+    # setTimeout (-> Event(idDiv).click()), 100
 
     nullFn = ->
 
@@ -187,6 +189,8 @@ if window.location.protocol isnt 'chrome-extension:'
               try
                 chrome.extension.sendRequest(signature...)
             else
+              # Wait until it is needed to get the account id
+              Event(idDiv).click() if queue.length is 0
               queue.push signature
 
         walkMethodTree(anchor[method], root[method], "#{prefix}#{method}.")
