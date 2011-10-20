@@ -3,37 +3,97 @@ class Account
   @find: (id) ->
     accounts[id] ||= new @(id)
 
+  @each: (callback) ->
+    callback(account) for id, account of accounts
+
   constructor: (@id) ->
+    @tabs = {}
+    @gifts = (criteria, callback) ->
+      if typeof criteria is 'function'
+        callback = criteria
+        criteria = {}
+
+      criteria['toAccount'] = id
+      (new Gifts()).fetch(conditions: criteria, success: callback)
+
+    for criteria in ['unclaimed', 'claimed', 'error', 'stolen']
+      do (criteria) =>
+        @gifts[criteria] = (callback) =>
+          @gifts(status: criteria, callback)
+
+        @gifts[criteria]['add'] = (token, callback) =>
+          defaultFn = =>
+            console.log(arguments)
+            gift.save {status: criteria}, success: =>
+              for tabId, _ of @tabs
+                chrome.tabs.sendRequest(+tabId, {method: 'updateGift', args: [token, criteria]})
+
+          gift = new Gift({token, toAccount: id})
+          gift.fetch success: defaultFn, error: defaultFn
+
+        # @gifts[criteria]['contains'] = (token, callback) ->
+        #   criteria = {token: token, toAccount: id}
+        #   (new Gift(criteria)).fetch
+        #     success: -> callback(true)
+        #     error: -> callback(false)
+
 
   # receivedGifts: ->
 
-  gifts: (callback) ->
-    (new Gifts()).fetch(conditions: {toAccount: @id}, success: callback, error: callback)
+  # gifts: (criteria, callback) ->
+  #   if typeof criteria is 'function'
+  #     callback = criteria
+  #     criteria = {}
 
-  unclaimedGifts: (callback) ->
-    (new Gifts()).fetch(conditions: {toAccount: @id, status: 'unclaimed'}, success: callback)
+  #   criteria['toAccount'] = @id
+  #   console.log(criteria)
+  #   (new Gifts()).fetch(conditions: criteria, success: callback, error: callback)
 
-  errorGifts: (callback) ->
-    (new Gifts()).fetch(conditions: {toAccount: @id, status: 'error'}, success: callback)
+  # for criteria in ['unclaimed', 'claimed', 'error']
+  #   do (criteria) =>
+  #     @::gifts[criteria] = (callback) ->
+  #       @(status: criteria, callback)
 
-  hasClaimedGift: (id, callback) ->
-    (new Gift({token: id, toAccount: @id})).fetch(success: (-> callback(true)), error: (-> callback(false)))
+  #     @::gifts[criteria]['add'] = (token, callback) ->
+  #       gift = new Gift({token, toAccount: @id})
+  #       gift.fetch
+  #         success: ->
+  #           gift.save({status: criteria}, success: callback)
+  #         error: ->
+  #           gift.save({status: criteria}, success: callback)
+  # @::gifts.unclaimed = (callback) ->
+  #   @(status: 'unclaimed', callback)
 
-  claimGift: (id, callback) ->
-    gift = new Gift(token: id, toAccount: @id)
-    gift.fetch
-      success: ->
-        gift.save({status: 'claimed'}, success: callback)
-      error: ->
-        gift.save({status: 'claimed'}, success: callback)
+  # @::gifts.claimed = (callback) ->
+  #   @(status: 'claimed', callback)
 
-  addGift: (id, callback) ->
-    gift = new Gift(token: id, toAccount: @id)
-    gift.fetch
-      success: ->
-        gift.touch(success: callback)
-      error: ->
-        gift.save({}, success: callback)
+  # @::gifts.error = (callback) ->
+  #   @(status: 'error', callback)
+
+  # unclaimedGifts: (callback) ->
+  #   (new Gifts()).fetch(conditions: {toAccount: @id, status: 'unclaimed'}, success: callback)
+
+  # errorGifts: (callback) ->
+  #   (new Gifts()).fetch(conditions: {toAccount: @id, status: 'error'}, success: callback)
+
+  # hasClaimedGift: (id, callback) ->
+  #   (new Gift({token: id, toAccount: @id})).fetch(success: (-> callback(true)), error: (-> callback(false)))
+
+  # claimGift: (id, callback) ->
+  #   gift = new Gift(token: id, toAccount: @id)
+  #   gift.fetch
+  #     success: ->
+  #       gift.save({status: 'claimed'}, success: callback)
+  #     error: ->
+  #       gift.save({status: 'claimed'}, success: callback)
+
+  # addGift: (id, callback) ->
+  #   gift = new Gift(token: id, toAccount: @id)
+  #   gift.fetch
+  #     success: ->
+  #       gift.touch(success: callback)
+  #     error: ->
+  #       gift.save({}, success: callback)
 
   addGiftFromFriend: (token, friendId, callback) ->
     @addGift(token, -> @addGifter(friendId, callback))
@@ -81,24 +141,40 @@ if window.location.protocol isnt 'chrome-extension:'
     ).toString() + ')(this);')
     document.body.appendChild(idDiv)
 
-    Event(idDiv).click()
-
     idDiv.addEventListener 'gplusid', ->
       Account.id = accountId = idDiv.getAttribute('oid')
+      console.log('Got id of ' + Account.id)
+      for item in queue
+        item[0].accountId = accountId
+        chrome.extension.sendRequest(item...)
       document.body.removeChild(idDiv)
 
-    for own method of Account::
-      do (method) ->
-        Account[method] = (args...) ->
-          if typeof args[args.length - 1] is 'function'
-            callback = args[args.length - 1]
-            args = args[0...-1]
-          else
-            callback = null
+    Event(idDiv).click()
 
-          # Add the user account identifier from G+
-          if accountId
-            chrome.extension.sendRequest({method, args, accountId}, callback)
-          else
-            console.log('Account id is missing, can\'t communicate to bg tab')
+    nullFn = ->
+
+    walkMethodTree = (anchor, root, prefix = '') ->
+      for method of root
+        do (method) ->
+          anchor[method] = (args...) ->
+            if typeof args[args.length - 1] is 'function'
+              callback = args[args.length - 1]
+              args = args[0...-1]
+            else
+              callback = nullFn
+
+            # Add the user account identifier from G+
+            signature = [{method: "#{prefix}#{method}", args, accountId}, callback]
+            if accountId
+              try
+                chrome.extension.sendRequest(signature...)
+              catch e
+                console.log(signature)
+                console.log(e)
+            else
+              queue.push signature
+
+        walkMethodTree(anchor[method], root[method], "#{prefix}#{method}.")
+
+    walkMethodTree(Account, new Account())
 
