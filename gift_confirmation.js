@@ -25,17 +25,19 @@ if (token) {
       clearInterval(giftCheck);
       confirmation = confirmation[0].innerText;
       if (/\b(successfully|already)\b/i.test(confirmation)) {
-        Account.claimGift(token, function(gift) {
-          console.log(arguments);
-        })
-        chrome.extension.sendRequest({markClaim: token});
+        // Account.claimGift(token, function(gift) {
+        Account.gifts.claimed.add(token);
+        // chrome.extension.sendRequest({markClaim: token});
       } else if (/\berror\b/i.test(confirmation)) {
-        chrome.extension.sendRequest({claimError: token});
+        // chrome.extension.sendRequest({claimError: token});
+        Account.gifts.error.add(token);
       } else if (/\bexpired\b/.test(confirmation)) {
-        chrome.extension.sendRequest({claimExpired: token});
+        // chrome.extension.sendRequest({claimExpired: token});
+        Account.gifts.expired.add(token);
       } else if (/\bstolen\b/.test(confirmation)) {
         // We couldn't find that gift in our databases. A hurlock must have stolen it!
-        chrome.extension.sendRequest({claimStolen: token});
+        // chrome.extension.sendRequest({claimStolen: token});
+        Account.gifts.stolen.add(token);
       }
 
       // chrome.extension.sendRequest({getGifters: true}, function(gifters) {

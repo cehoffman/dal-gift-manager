@@ -35,6 +35,31 @@ class Gift extends TimestampModel
   database: database
   storeName: 'gifts'
 
+  # Generate our own unique id from the token and toAccount
+  # fields unless the id is already set
+  generateId = (id, token, toAccount) ->
+    if not id && token && toAccount
+      "#{toAccount}-#{token}"
+    else
+      id
+
+  constructor: ->
+    super
+    @set(id: generateId(@get('id'), @get('token'), @get('toAccount')))
+
+  save: (props) ->
+    @set(id: generateId(props?.id || @get('id'), props?.token || @get('token'), props?.toAccount || @get('toAccount')))
+    super
+
+  fetch: ->
+    @set(id: generateId(@get('id'), @get('token'), @get('toAccount')))
+    super
+
+  url: ->
+    params = btoa(JSON.stringify(page: 'acceptedGift', token: @get('token')))
+    params = encodeURIComponent(JSON.stringify(encPrms: params))
+    "https://plus.google.com/games/867517237916/params/#{params}/source/3/"
+
 class Gifts extends Backbone.Collection
   model: Gift
 

@@ -56,6 +56,7 @@ class GPlus
 
       # Don't bother fetching more gifts if all displayed gifts are claimed
       return if prevUnclaimedCount is 0 and prevGiftCount > 0
+      Account.claimStart()
 
     moreButton = document.getElementsByClassName('a-j hk ir')[0]
 

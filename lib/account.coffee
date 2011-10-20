@@ -16,17 +16,30 @@ class Account
       criteria['toAccount'] = id
       (new Gifts()).fetch(conditions: criteria, success: callback)
 
-    for criteria in ['unclaimed', 'claimed', 'error', 'stolen']
+    for criteria in ['unclaimed', 'claimed', 'expired', 'error', 'stolen']
       do (criteria) =>
-        @gifts[criteria] = (callback) =>
-          @gifts(status: criteria, callback)
+        @gifts[criteria] = (query, callback) =>
+          if typeof query is 'function'
+            callback = query
+            query = {}
+          query['status'] = criteria
+          @gifts(query, callback)
 
         @gifts[criteria]['add'] = (token, callback) =>
           defaultFn = =>
+            attrs = {status: criteria}
             console.log(arguments)
-            gift.save {status: criteria}, success: =>
+            if criteria isnt 'unclaimed'
+              attrs['claimTries'] = (gift.get('claimTries') || 0) + 1
+
+            gift.save attrs, success: =>
+              # Take care of possible automated claimer
+              @claimFinished() if @giftClaimer && criteria isnt 'unclaimed'
+
               for tabId, _ of @tabs
                 chrome.tabs.sendRequest(+tabId, {method: 'updateGift', args: [token, criteria]})
+
+              callback(gift) if typeof callback is 'function'
 
           gift = new Gift({token, toAccount: id})
           gift.fetch success: defaultFn, error: defaultFn
@@ -37,7 +50,37 @@ class Account
         #     success: -> callback(true)
         #     error: -> callback(false)
 
+  claimFinished: ->
+    # Get a single unclaimed gift
+    @gifts.unclaimed {limit: 1}, (gifts) =>
+        # If there was no gift found look for gifts that had
+        # errors when trying to claim and pick any that have
+        # not been tried 5 times yet and mark them as unclaimed
+        # again. The first one found kicks off the claim machine
+        # on success and ends it all on error
+        if not (gift = gifts.at(0))
+          @gifts.error (gifts) =>
+              retryable = (gift for gift in gifts.models when (gift.get('claimTries') || 0) < 5)
+              if retryable.length > 0
+                @gifts.unclaimed.add retryable[0].get('token'), @claimFinished.bind(@)
+                  # error: => chrome.tabs.remove(@giftClaimer.id)
+                @gifts.unclaimed.add gift.get('token') for gift in retryable[1..-1]
+              else
+                chrome.tabs.remove(@giftClaimer.id) if @giftClaimer
+            # error: =>
+            #   chrome.tabs.remove(@giftClaimer.id)
+        else
+          if @giftClaimer
+            chrome.tabs.update(@giftClaimer.id, url: gift.url())
+          else
+            chrome.tabs.create({url: gift.url(), selected: false}, (tab) => @giftClaimer = tab)
+      # error: =>
+      #   chrome.tabs.remove(@giftClaimer.id) if @giftClaimer
 
+  claimStart: @::claimFinished
+
+  claimStopped: (tabId) ->
+    @giftClaimer = undefined if @giftClaimer?.id is tabId
   # receivedGifts: ->
 
   # gifts: (criteria, callback) ->
@@ -95,8 +138,8 @@ class Account
   #     error: ->
   #       gift.save({}, success: callback)
 
-  addGiftFromFriend: (token, friendId, callback) ->
-    @addGift(token, -> @addGifter(friendId, callback))
+  # addGiftFromFriend: (token, friendId, callback) ->
+  #   @addGift(token, -> @addGifter(friendId, callback))
 
   addGifter: (id, callback) ->
     (new Gifter({toAccount: @id, gplusId: id})).fetch
@@ -106,15 +149,26 @@ class Account
         model.save({}, success: callback, error: callback)
 
   addTab: (callback, sender) ->
-    (@activeTabs ||= {})[sender.tab.id] = true
+    # Absolute crap that I have to put this on a timeout
+    # otherwise it pops active and then disappears on page refresh
+    if typeof @tabs[sender.tab.id] isnt 'number'
+      chrome.pageAction.show(sender.tab.id)
+      @tabs[sender.tab.id] = setTimeout(=>
+        chrome.pageAction.show(sender.tab.id)
+        @tabs[sender.tab.id] = true
+      , 1000)
     null
 
-  removeTab: (callback, tabId) ->
-    delete @activeTabs[sender.tab.id]
+  removeTab: (callback, sender) ->
+    if @tabs[sender.tab.id]
+      clearTimeout(@tabs[sender.tab.id])
+      chrome.pageAction.hide(sender.tab.id)
+      delete @tabs[sender.tab.id]
     null
 
 if window.location.protocol isnt 'chrome-extension:'
   do ->
+    queue = []
     accountId = null
     idDiv = document.createElement('div')
     idDiv.style.display = 'none'
@@ -136,6 +190,8 @@ if window.location.protocol isnt 'chrome-extension:'
             alertIdReady(user.id)
           else if tries < 5
             setTimeout((-> google.plusone.api('/people/me', postId)), 100)
+          else if user?.error?.message is 'quota exceeded'
+            setTimeout((-> google.plusone.api('/people/me', postId)), 1000 * 60 * 15)
 
         google.plusone.api '/people/me', postId
     ).toString() + ')(this);')
@@ -177,4 +233,3 @@ if window.location.protocol isnt 'chrome-extension:'
         walkMethodTree(anchor[method], root[method], "#{prefix}#{method}.")
 
     walkMethodTree(Account, new Account())
-

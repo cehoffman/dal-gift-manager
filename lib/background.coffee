@@ -11,3 +11,13 @@ chrome.extension.onRequest.addListener (request, sender, callback) ->
 
 chrome.pageAction.onClicked.addListener (tab) ->
   chrome.tabs.sendRequest(tab.id, {method: 'fetchAllGifts', args: []})
+
+# class GiftClaimer
+#   @stop: ->
+
+
+chrome.tabs.onRemoved.addListener (tabId) ->
+  Account.each (account) ->
+    account.claimStopped(tabId)
+  # if GiftClaimer.id is tabId
+  #   GiftClaimer.stop()
