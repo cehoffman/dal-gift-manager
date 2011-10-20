@@ -2,6 +2,10 @@
   position: relative;
 }
 
+.oda a[data-claim-status]:before {
+  top: 84px;
+}
+
 a[data-claim-status]:before {
   content: '';
   background-color: black;
@@ -12,7 +16,14 @@ a[data-claim-status]:before {
 
   position: absolute;
   right: 37px;
-  top: 84px;
+}
+
+.gZto9c {
+  position: relative;
+}
+
+.gZto9c a[data-claim-status]:before {
+  top: 53px;
 }
 
 a[data-claim-status=claimed]:before {
