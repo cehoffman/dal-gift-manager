@@ -1,36 +1,3 @@
-# setInterval( ->
-#   previousTracker.splice(0, 0, window.location.pathname);
-#   previousTracker.length = 2
-
-#   if previousTracker[0] isnt previousTracker[1]
-#     previous = previousTracker[1]
-
-#     # Simulate that this is a fresh page load
-#     allGifts = {}
-#     lastGiftRound.length = 0
-
-#     if matchPath(window.location.pathname)
-#       # Reload the page is we hit another page that we
-#       # are supposed to be active on, there is a weird
-#       # problem with a stale dom in that situation
-#       if matchPath(previous)
-#         window.location = window.location
-
-
-#       activateWaiter = setTimeout( ->
-#         findGifts()
-#         if moreButton()
-#           moreButton().addEventListener 'click', (e) ->
-#             setTimeout(findGifts, 1000)
-
-#         Account.addTab()
-#       , 1000)
-#     else if activateWaiter
-#       Account.removeTab()
-#       clearTimeout(activateWaiter)
-#       activateWaiter = null
-# , 100)
-
 class GPlus
   constructor: ->
     @content = document.getElementById('content')
