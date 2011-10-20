@@ -176,7 +176,7 @@ class Account
   #       model.save({}, success: callback, error: callback)
 
   continueSendingGifts: (callback, sender) ->
-    chrome.tabs.sendRequest({method: 'continueSendingGifts', args: []})
+    chrome.tabs.sendRequest(sender.tab.id, {method: 'continueSendingGifts', args: []})
 
   sendGifts: (callback, sender) ->
     @giftTabs[sender.tab.id] = true
