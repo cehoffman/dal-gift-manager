@@ -26,7 +26,7 @@
       "matches": [
         "https://*.googleusercontent.com/gadgets/ifr?url=app://867517237916/game*"
       ],
-      "js": ["src/lib.js", "src/account.js", "gift_confirmation.js"],
+      "js": ["src/lib.js", "src/account.js", "src/dal.js"],
       "run_at": "document_idle",
       "all_frames": true
     },

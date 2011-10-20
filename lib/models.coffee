@@ -15,6 +15,28 @@ database =
         store.createIndex('gplusIdIndex', 'gplusId', unique: false)
         
         next()
+    },
+    {
+      version: '0.0.4'
+      before: (db, next) ->
+        gifters = new Gifters()
+        gifters.fetch success: (gifters) ->
+          for gifter in gifters.models
+            gifter.set account: gifter.get('gplusId')
+            gifter.save()
+        next()
+      migrate: (db, versionRequest, next) ->
+        store = versionRequest.transaction.objectStore('gifters')
+        store.deleteIndex('gplusIdIndex')
+        store.createIndex('accountIndex', 'account', unique: false)
+        next()
+      after: (db, next) ->
+        gifters = new Gifters()
+        gifters.fetch success: (gifters) ->
+          for gifter in gifters.models
+            gifter.unset('gplusId')
+            gifter.save()
+        next()
     }
   ]
 

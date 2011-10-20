@@ -8,6 +8,33 @@ class Account
 
   constructor: (@id) ->
     @tabs = {}
+    @giftTabs = {}
+
+    @gifters = (criteria, callback) ->
+      if typeof criteria is 'function'
+        callback = criteria
+        criteria = {}
+
+      criteria['toAccount'] = id
+      (new Gifters()).fetch(conditions: criteria, success: callback)
+
+    @gifters['add'] = (gifterId, callback) ->
+      defaultFn = ->
+        gifter.save {}, success: ->
+          callback(gifter) if callback
+
+      gifter = new Gifter(account: gifterId, toAccount: id)
+      gifter.fetch success: defaultFn, error: defaultFn
+
+    @gifters['sentGift'] = (gifterId, callback) ->
+      defaultFn = ->
+        gifter.save {lastGift: new Date()}, success: ->
+          callback(gifter) if callback
+
+      gifter = new Gifter(account: gifterId, toAccount: id)
+      gifter.fetch success: defaultFn, error: defaultFn
+
+
     @gifts = (criteria, callback) ->
       if typeof criteria is 'function'
         callback = criteria
@@ -141,12 +168,22 @@ class Account
   # addGiftFromFriend: (token, friendId, callback) ->
   #   @addGift(token, -> @addGifter(friendId, callback))
 
-  addGifter: (id, callback) ->
-    (new Gifter({toAccount: @id, gplusId: id})).fetch
-      success: (model) ->
-        model.touch(success: callback)
-      error: (model) ->
-        model.save({}, success: callback, error: callback)
+  # addGifter: (id, callback) ->
+  #   (new Gifter({toAccount: @id, gplusId: id})).fetch
+  #     success: (model) ->
+  #       model.touch(success: callback)
+  #     error: (model) ->
+  #       model.save({}, success: callback, error: callback)
+
+  continueSendingGifts: (callback, sender) ->
+    chrome.tabs.sendRequest({method: 'continueSendingGifts', args: []})
+
+  sendGifts: (callback, sender) ->
+    @giftTabs[sender.tab.id] = true
+    setTimeout (=> @giftTabs[sender.tab.id] = false), 1000
+
+  isSendingGift: (callback, sender) ->
+    callback(!!@giftTabs[sender.tab.id])
 
   addTab: (callback, sender) ->
     # Absolute crap that I have to put this on a timeout

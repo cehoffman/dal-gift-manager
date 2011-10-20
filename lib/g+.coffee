@@ -12,6 +12,10 @@ class GPlus
 
   giftToken: giftHash
 
+  continueSendingGifts: (callback) ->
+    document.getElementById('feedback').display = 'none'
+    Event(document.getElementById('dal-send-autogift')).click()
+
   updateGift: (token, status, callback) ->
     for item in @gifts[token] || []
       @render(item, status)
@@ -67,7 +71,7 @@ class GPlus
           if token = @giftToken(item.href)
             if /\/(u\/\d+\/)?games\/notifications/.test(window.location.pathname)
               entry = item.parentElement
-              entry = entry.parentElement until entry.className is 'PA' || entry is document.body
+              entry = entry.parentElement until entry.className is 'V3 Zn' || entry is document.body
               giftFrom = entry.getElementsByClassName('jda')[0]?.childNodes[0]
               giftFrom = giftFrom?.href?.match(/(\d+)$/)?[1]
             else
@@ -86,6 +90,12 @@ class GPlus
           Account.gifts.unclaimed.add(token)
         else
           @render(item, gifts[0].status)
+
+      if from
+        Account.gifters {account: from}, (gifters) =>
+          console.log(from, gifters, gifters[0])
+          if not gifters[0]
+            Account.gifters.add(from)
 
     @activate() if not @active && @numGiftsOnPage() > 0
 

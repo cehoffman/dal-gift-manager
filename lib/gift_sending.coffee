@@ -1,61 +1,84 @@
-waitingToDetect = false
-waitToScroll = ->
-  if window.innerWidth is 0
-    waitingToDetect = setTimeout(waitToScroll, 100)
-  else
-    waitingToDetect = false
-    chrome.extension.sendRequest getGifters: true, (gifters) ->
-      scroller = document.getElementsByClassName('NP')[0]
-      oldScroll = scroller.onscroll
-      scroller.onscroll = ->
-        pickVisibleGifters(gifters)
-        oldScroll.apply(window, [arguments...]) if oldScroll
-      pickVisibleGifters(gifters)
+class ContactPicker
+  constructor: ->
+    @waitingToDetect = false
 
-      scrollContacts()
+  listenForGooglePicker: ->
+    document.body.addEventListener 'DOMNodeInserted', @domAdded.bind(@)
+    # document.body.addEventListener 'DOMNodeRemoved', @domRemoved.bind(@)
 
-scrollTimer = null
-scrollContacts = ->
-  scroller = document.getElementsByClassName('NP')[0]
-  curScroll = scroller.scrollTop
+  domAdded: (event) ->
+    Account.isSendingGift (isSending) =>
+      if isSending && not @waitingToDetect && window.innerWidth is 0
+        @scrollTimer = undefined
+        @waitToAppear()
 
-  scroller.scrollTop += 200
-  if scroller.scrollTop is curScroll
-    setTimeout( ->
-      chrome.extension.sendRequest availableGifters: true, (gifters) ->
-        for gifter in gifters when gifter in selected
-          console.log("Not selecting https://plus.google.com/#{gifters[i]}/posts")
-    , 300)
-  else
-    scrollTimer = setTimeout(scrollContacts, 100)
-
-selected = []
-pickVisibleGifters = ->
-  for el in document.getElementsByClassName('cl')
-    if selected.length < 50
-      oid = el.getAttribute('oid')
-      if el and oid in gifters and oid not in selected
-        selected.push(oid)
-        Event(el).mousedown().mouseup()
+  waitToAppear: ->
+    if window.innerWidth is 0
+      @waitingToDetect = setTimeout(@waitToAppear.bind(@), 100)
     else
-      clearTimeout(scrollTimer) if scrollTimer
+      @waitingToDetect = false
+      Account.gifters (allGifters) =>
+        @gifters = {}
+        count = 0
 
+        aDayAgo = new Date() - 1000 * 60 * 60 * 24
+        for gifter in allGifters
+          if not gifter.lastGift || gifter.lastGift < aDayAgo
+            @gifters[gifter.account] = true
+            break if ++count >= 50
+
+        @scroller = document.getElementsByClassName('NP')[0]
+
+        originalScroll = @scroller.onscroll
+        @scroller.onscroll = =>
+          @pickVisible()
+          originalScroll.apply(window, [arguments...]) if originalScroll
+
+        @pickVisible()
+        @scrollContacts()
+
+  pickVisible: ->
+    for el in [document.getElementsByClassName('cl')...]
+      oid = el.getAttribute('oid')
+      if @gifters[oid]
+        Event(el).mousedown().mouseup()
+
+  scrollContacts: ->
+    curScroll = @scroller.scrollTop
+
+    @scroller.scrollTop += 200
+    if @scroller.scrollTop is curScroll
+      @sendGift()
+      # setTimeout( ->
+      #   chrome.extension.sendRequest availableGifters: true, (gifters) ->
+      #     for gifter in gifters when gifter in selected
+      #       console.log("Not selecting https://plus.google.com/#{gifters[i]}/posts")
+      # , 300)
+    else
+      @scrollTimer = setTimeout(@scrollContacts.bind(@), 100)
+
+
+  sendGift: ->
+    preview = document.getElementsByClassName('a-wc-na')
+    Event(preview[0]).click()
+
+    setTimeout =>
       preview = document.getElementsByClassName('a-wc-na')
       Event(preview[0]).click()
 
-      setTimeout( ->
-        preview = document.getElementsByClassName('a-wc-na')
-        Event(preview[0]).click()
+      count = 0
+      for oid, _ of @gifters
+        count++
+        Account.gifters.sentGift(oid)
 
-        if selected.length < gifters.length
-          chrome.extension.sendRequest(continueGifting: true)
-      , 100)
+      waitingToSend = setInterval ->
+        if window.innerWidth is 0
+          clearInterval(waitingToSend)
+          Account.continueSendingGifts() if count > 50
+      , 100
 
-      break
+      setTimeout((-> clearInterval(waitingToSend)), 15000)
+    , 100
 
-document.body.addEventListener 'DOMNodeInserted', (event) ->
-  chrome.extension.sendRequest isSendingGift: true, (isSendingGift) ->
-    if isSendingGift && !waitingToDetect && window.innerWidth is 0
-      scrollTimer = undefined
-      # selected.length = 0
-      waitToScroll()
+
+(new ContactPicker()).listenForGooglePicker()
