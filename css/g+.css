@@ -1,3 +1,7 @@
+.oda {
+  position: relative;
+}
+
 a[data-claim-status]:before {
   content: '';
   background-color: black;
@@ -5,23 +9,24 @@ a[data-claim-status]:before {
   width: 24px;
   height: 24px;
   display: inline-block;
-  margin-right: 3px;
-  margin-bottom: -3px;
-  vertical-align: bottom;
-  z-index: 1;
+
+  position: absolute;
+  right: 37px;
+  top: 84px;
 }
 
 a[data-claim-status=claimed]:before {
   -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/opened.png);
   height: 19px;
-  margin-bottom: -1px;
 }
 
 a[data-claim-status=error]:before {
-  -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/broken.png);
-  margin-bottom: -4px;
+  -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/error.png?123);
 }
 
 a[data-claim-status=stolen]:before {
-  background-color: yellow;
+  -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/stolenalt.png?123);
+  margin-top: 5px;
+  height: 15px;
+  margin-right: -1px;
 }
