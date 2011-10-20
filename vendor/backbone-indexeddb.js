@@ -239,6 +239,8 @@
                 options.error("No Cursor");
             } else {
                 _.each(readCursors, function(readCursor, key) {
+                    elements[key] = {};
+
                     // Setup a handler for the cursor’s `success` event:
                     readCursor.onsuccess = function (e) {
                         var cursor = e.target.result;
@@ -297,7 +299,6 @@
                                 }
                             }
                         } else {
-                          elements[key] = elements[key] || {};
                           elements[key][cursor.value.id] = cursor.value;
                           cursor.continue();
                         }
