@@ -1,0 +1,27 @@
+a[data-claim-status]:before {
+  content: '';
+  background-color: black;
+  -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/wrapped.png);
+  width: 24px;
+  height: 24px;
+  display: inline-block;
+  margin-right: 3px;
+  margin-bottom: -3px;
+  vertical-align: bottom;
+  z-index: 1;
+}
+
+a[data-claim-status=claimed]:before {
+  -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/opened.png);
+  height: 19px;
+  margin-bottom: -1px;
+}
+
+a[data-claim-status=error]:before {
+  -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/broken.png);
+  margin-bottom: -4px;
+}
+
+a[data-claim-status=stolen]:before {
+  background-color: yellow;
+}

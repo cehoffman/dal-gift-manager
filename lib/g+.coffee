@@ -47,8 +47,7 @@ class GPlus
 
   updateGift: (token, status, callback) ->
     for item in @gifts[token] || []
-      item.setAttribute('data-gift-claimed', status is 'claimed')
-      @render(item)
+      @render(item, status)
 
   fetchAllGifts: (callback, prevGiftCount, prevUnclaimedCount, roundCount = 0) ->
     if roundCount is 0
@@ -82,23 +81,16 @@ class GPlus
   numUnclaimedGiftsOnPage: ->
     count = 0
     for token, list of @gifts
-      for item in list when item.getAttribute('data-gift-claimed') is 'false'
-        count++
+      for item in list
+        status = item.getAttribute('data-claim-status')
+        if status is 'unclaimed' || status is 'error'
+          count++
+          break
     count
 
 
-  render: (node) ->
-    isClaimed = node.getAttribute('data-gift-claimed') is 'true'
-    if node.childNodes[0].nodeName is 'IMG'
-      image = node.childNodes[0]
-    else
-      image = document.createElement('img')
-      image.style.verticalAlign = 'bottom'
-      image.style.paddingRight = '3px'
-      node.insertBefore(image, node.childNodes[0])
-
-    image.style.paddingBottom = if isClaimed then '1px' else '0px'
-    image.src = chrome.extension.getURL if isClaimed then 'opened.png' else 'icon16.png'
+  render: (node, status) ->
+    node.setAttribute('data-claim-status', status)
 
   eachGift: (domNode, callback) ->
     if domNode.nodeName isnt '#text'
@@ -115,8 +107,10 @@ class GPlus
 
       Account.gifts {token}, (gifts) =>
         console.log(token, gifts, gifts[0])
-        item.setAttribute('data-gift-claimed', gifts[0]?.status is 'claimed')
-        @render(item)
+        if not gifts[0]
+          Account.gifts.unclaimed.add(token)
+        else
+          @render(item, gifts[0].status)
 
     @activate() if not @active && @numGiftsOnPage() > 0
 
