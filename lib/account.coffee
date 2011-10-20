@@ -55,7 +55,6 @@ class Account
         @gifts[criteria]['add'] = (token, callback) =>
           defaultFn = =>
             attrs = {status: criteria}
-            console.log(arguments)
             if criteria isnt 'unclaimed'
               attrs['claimTries'] = (gift.get('claimTries') || 0) + 1
 
@@ -150,7 +149,6 @@ if window.location.protocol isnt 'chrome-extension:'
         tries = 0
         postId = (user) ->
           tries++
-          console.log(user)
           if user.id
             alertIdReady(user.id)
           else if user?.error?.message is 'quota exceeded'
@@ -164,7 +162,6 @@ if window.location.protocol isnt 'chrome-extension:'
 
     idDiv.addEventListener 'gplusid', ->
       Account.id = accountId = idDiv.getAttribute('oid')
-      console.log('Got id of ' + Account.id)
       for item in queue
         item[0].accountId = accountId
         chrome.extension.sendRequest(item...)
@@ -189,9 +186,6 @@ if window.location.protocol isnt 'chrome-extension:'
             if accountId
               try
                 chrome.extension.sendRequest(signature...)
-              catch e
-                console.log(signature)
-                console.log(e)
             else
               queue.push signature
 

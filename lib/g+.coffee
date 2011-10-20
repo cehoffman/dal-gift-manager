@@ -85,7 +85,6 @@ class GPlus
         list.push item
 
       Account.gifts {token}, (gifts) =>
-        console.log(token, gifts, gifts[0])
         if not gifts[0]
           Account.gifts.unclaimed.add(token)
         else
@@ -93,7 +92,6 @@ class GPlus
 
       if from
         Account.gifters {account: from}, (gifters) =>
-          console.log(from, gifters, gifters[0])
           if not gifters[0]
             Account.gifters.add(from)
 
