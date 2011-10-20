@@ -1,11 +1,14 @@
 giftHash = (url) ->
-  if hash = url.match(/%22%3A%22(.*)%22%7D/)
+  token = url.match(/%22%3A%22(.*)%22%7D/)
+  if token
     try
-      hash = JSON.parse(atob(hash[1]))
-      if hash['page'] is 'acceptedGift'
-        hash['token']
+      token = JSON.parse(atob(token[1]))
     catch e
-      console.log(e)
+      try
+        token = JSON.parse(atob(token[1][0...-1]))
+      catch e
+
+    token.token if token.page is 'acceptedGift'
 
 Event = (element) ->
   dispatch = (type, subtype, args...) ->
