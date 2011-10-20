@@ -1,14 +1,4 @@
 (function () { /*global _: false, Backbone: false */
-    // Generate four random hex digits.
-    function S4() {
-        return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
-    }
-
-    // Generate a pseudo-GUID by concatenating random hexadecimal.
-    function guid() {
-        return (S4() + S4() + "-" + S4() + "-" + S4() + "-" + S4() + "-" + S4() + S4() + S4());
-    }
-
     var indexedDB = window.indexedDB || window.webkitIndexedDB || window.mozIndexedDB;
     var IDBTransaction = window.IDBTransaction || window.webkitIDBTransaction; // No prefix in moz
     var IDBKeyRange = window.IDBKeyRange || window.webkitIDBKeyRange; // No prefix in moz
@@ -130,7 +120,7 @@
             var store = writeTransaction.objectStore(storeName);
             var json = object.toJSON();
 
-            if (!json.id) json.id = guid();
+            if (!json.id) json.id = uuid();
 
             var writeRequest = store.put(json);
 
