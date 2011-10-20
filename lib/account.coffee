@@ -71,12 +71,6 @@ class Account
           gift = new Gift({token, toAccount: id})
           gift.fetch success: defaultFn, error: defaultFn
 
-        # @gifts[criteria]['contains'] = (token, callback) ->
-        #   criteria = {token: token, toAccount: id}
-        #   (new Gift(criteria)).fetch
-        #     success: -> callback(true)
-        #     error: -> callback(false)
-
   claimFinished: ->
     # Get a single unclaimed gift
     @gifts.unclaimed {limit: 1}, (gifts) =>
@@ -108,72 +102,6 @@ class Account
 
   claimStopped: (tabId) ->
     @giftClaimer = undefined if @giftClaimer?.id is tabId
-  # receivedGifts: ->
-
-  # gifts: (criteria, callback) ->
-  #   if typeof criteria is 'function'
-  #     callback = criteria
-  #     criteria = {}
-
-  #   criteria['toAccount'] = @id
-  #   console.log(criteria)
-  #   (new Gifts()).fetch(conditions: criteria, success: callback, error: callback)
-
-  # for criteria in ['unclaimed', 'claimed', 'error']
-  #   do (criteria) =>
-  #     @::gifts[criteria] = (callback) ->
-  #       @(status: criteria, callback)
-
-  #     @::gifts[criteria]['add'] = (token, callback) ->
-  #       gift = new Gift({token, toAccount: @id})
-  #       gift.fetch
-  #         success: ->
-  #           gift.save({status: criteria}, success: callback)
-  #         error: ->
-  #           gift.save({status: criteria}, success: callback)
-  # @::gifts.unclaimed = (callback) ->
-  #   @(status: 'unclaimed', callback)
-
-  # @::gifts.claimed = (callback) ->
-  #   @(status: 'claimed', callback)
-
-  # @::gifts.error = (callback) ->
-  #   @(status: 'error', callback)
-
-  # unclaimedGifts: (callback) ->
-  #   (new Gifts()).fetch(conditions: {toAccount: @id, status: 'unclaimed'}, success: callback)
-
-  # errorGifts: (callback) ->
-  #   (new Gifts()).fetch(conditions: {toAccount: @id, status: 'error'}, success: callback)
-
-  # hasClaimedGift: (id, callback) ->
-  #   (new Gift({token: id, toAccount: @id})).fetch(success: (-> callback(true)), error: (-> callback(false)))
-
-  # claimGift: (id, callback) ->
-  #   gift = new Gift(token: id, toAccount: @id)
-  #   gift.fetch
-  #     success: ->
-  #       gift.save({status: 'claimed'}, success: callback)
-  #     error: ->
-  #       gift.save({status: 'claimed'}, success: callback)
-
-  # addGift: (id, callback) ->
-  #   gift = new Gift(token: id, toAccount: @id)
-  #   gift.fetch
-  #     success: ->
-  #       gift.touch(success: callback)
-  #     error: ->
-  #       gift.save({}, success: callback)
-
-  # addGiftFromFriend: (token, friendId, callback) ->
-  #   @addGift(token, -> @addGifter(friendId, callback))
-
-  # addGifter: (id, callback) ->
-  #   (new Gifter({toAccount: @id, gplusId: id})).fetch
-  #     success: (model) ->
-  #       model.touch(success: callback)
-  #     error: (model) ->
-  #       model.save({}, success: callback, error: callback)
 
   continueSendingGifts: (callback, sender) ->
     chrome.tabs.sendRequest(sender.tab.id, {method: 'continueSendingGifts', args: []})
