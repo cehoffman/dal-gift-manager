@@ -64,11 +64,18 @@ class GPlus
     if domNode.nodeName isnt '#text'
       for item in domNode.getElementsByClassName('c-i-j-ua')
         if item.childNodes[item.childNodes.length - 1].nodeName is '#text'
-          token = @giftToken(item.href)
-          callback(item, token) if token
+          if token = @giftToken(item.href)
+            if /\/(u\/\d+\/)?games\/notifications/.test(window.location.pathname)
+              entry = item.parentElement
+              entry = entry.parentElement until entry.className is 'PA' || entry is document.body
+              giftFrom = entry.getElementsByClassName('jda')[0]?.childNodes[0]
+              giftFrom = giftFrom?.href?.match(/(\d+)$/)?[1]
+            else
+              giftFrom = undefined
+            callback(item, token, giftFrom)
 
   domAdded: (event) ->
-    @eachGift event.target, (item, token) =>
+    @eachGift event.target, (item, token, from) =>
       list = @gifts[token] ||= []
       if item not in list
         list.push item
