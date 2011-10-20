@@ -225,10 +225,10 @@ if window.location.protocol isnt 'chrome-extension:'
           console.log(user)
           if user.id
             alertIdReady(user.id)
+          else if user?.error?.message is 'quota exceeded'
+            setTimeout((-> google.plusone.api('/people/me', postId)), 1000 * 60 * 5)
           else if tries < 5
             setTimeout((-> google.plusone.api('/people/me', postId)), 100)
-          else if user?.error?.message is 'quota exceeded'
-            setTimeout((-> google.plusone.api('/people/me', postId)), 1000 * 60 * 15)
 
         google.plusone.api '/people/me', postId
     ).toString() + ')(this);')
