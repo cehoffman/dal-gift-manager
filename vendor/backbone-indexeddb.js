@@ -92,7 +92,24 @@
                 if (object instanceof Backbone.Collection) {
                     this.query(db, storeName, object, options); // It's a collection
                 } else {
-                    this.read(db, storeName, object, options); // It's a Model
+                    if (object.id) {
+                      // Do a speedy fetch if accessing by id
+                      this.read(db, storeName, object, options);
+                    } else {
+                      // otherwise use the set attributes to build
+                      // a query from the indexes present to fetch
+
+                      // Wrap success method because it expects a
+                      // single object
+                      var wrappedSuccess = options.success;
+                      options.success = function(items) {
+                        wrappedSuccess(items[0]);
+                      }
+                      options.conditions = object.toJSON();
+                      options.limit = 1;
+
+                      this.query(db, storeName, object, options);
+                    }
                 }
                 break;
             case "update":
@@ -129,35 +146,17 @@
         read: function (db, storeName, object, options) {
             var readTransaction = db.transaction([storeName], IDBTransaction.READ_ONLY);
             var store = readTransaction.objectStore(storeName);
-            var json = object.toJSON();
+            var getRequest = store.get(object.id);
 
+            getRequest.onsuccess = function(event) {
+              if (event.target.result) {
+                options.success(event.target.result);
+              } else {
+                options.error('Not Found');
+              }
+            }
 
-            var getRequest = null;
-            if (json.id) {
-                getRequest = store.get(json.id);
-            } else {
-                // We need to find which index we have
-                _.each(store.indexNames, function (key, index) {
-                    index = store.index(key);
-                    if (json[index.keyPath] && !getRequest) {
-                        getRequest = index.get(json[index.keyPath]);
-                    }
-                });
-            }
-            if (getRequest) {
-                getRequest.onsuccess = function (event) {
-                    if (event.target.result) {
-                        options.success(event.target.result);
-                    } else {
-                        options.error("Not Found");
-                    }
-                };
-                getRequest.onerror = function () {
-                    options.error("Not Found"); // We couldn't find the record.
-                }
-            } else {
-                options.error("Not Found"); // We couldn't even look for it, as we don't have enough data.
-            }
+            getRequest.onerror = options.error;
         },
 
         // Deletes the json.id key and value in storeName from db.
