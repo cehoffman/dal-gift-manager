@@ -49,7 +49,7 @@ class GPlus extends TabApi
     for token, list of @gifts
       for item in list
         status = item.getAttribute('data-claim-status')
-        if status is 'unclaimed' || status is 'error'
+        if status is 'unclaimed'
           count++
           break
     count
@@ -58,6 +58,7 @@ class GPlus extends TabApi
 
   render: (node, status) ->
     node.setAttribute('data-claim-status', status)
+    @register() if not @active && status is 'unclaimed'
 
   eachGift: (domNode, callback) ->
     if domNode.nodeName isnt '#text'
@@ -96,8 +97,6 @@ class GPlus extends TabApi
           if not gifters[0]
             Account.gifters.add(from)
 
-    @register() if not @active && @numUnclaimedGiftsOnPage() > 0
-
   domRemoved: (event) ->
     @eachGift event.target, (item, token) =>
       list = @gifts[token] ||= []
@@ -106,7 +105,7 @@ class GPlus extends TabApi
         delete @gifts[token] if list.length is 0
 
     if @active
-      if @numGiftsOnPage() > 0
+      if @numUnclaimedGiftsOnPage() > 0
         @register()
       else
         @unregister()
