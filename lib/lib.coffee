@@ -24,6 +24,8 @@ Event = (element) ->
   click: ->
     dispatch('MouseEvents', 'click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null)
     @
+  custom: (type, args...)->
+    dispatch('Events', type, args...)
 
 class TabApi
   @rootApi: 'chrome-extension:'
@@ -41,7 +43,7 @@ class TabApi
             else
               callback = nullFn
 
-            chrome.tabs.sendRequest(@tabId, {method, args}, callback)
+            chrome.tabs.sendRequest(@tabId, {method, args, class: @name()}, callback)
       else
         @::[method] = body
 
@@ -56,18 +58,72 @@ class TabApi
           originalUnload.apply(window, [arguments...]) if originalUnload
 
         chrome.extension.onRequest.addListener (request, sender, callback) ->
-          tab[request.method]?([request.args..., callback]...)
+          if request.class is tab.name()
+            tab[request.method]?([request.args..., callback]...)
 
   @enable: ->
 
   constructor: (@tabId) ->
 
+  name: ->
+    @_name ||= @constructor.toString().match(/function\s*([^(\s]+)/)[1]
+
   register: ->
-    name = @constructor.toString().match(/function\s*([^(\s]+)/)[1]
-    Account.registerTab(name)
+    Account.registerTab(@name())
 
   unregister: ->
     name = @constructor.toString().match(/function\s*([^(\s]+)/)[1]
-    Account.unregisterTab(name)
+    Account.unregisterTab(@name())
 
   setup: ->
+
+class ContactScroller extends TabApi
+  @api
+    selectUsers: (users, callback) ->
+      usersHash = {}
+      usersHash[oid] = true for oid in users
+      selected = []
+
+      pickVisible = ->
+        for el in [document.getElementsByClassName('cl')...]
+          oid = el.getAttribute('oid')
+          if usersHash[oid]
+            selected.push(oid)
+            Event(el).mousedown().mouseup()
+
+      @scroll
+        setup: pickVisible
+        step: pickVisible
+        teardown: -> callback?(selected)
+
+  scroll: (callbacks) ->
+    scroller = document.getElementsByClassName('NP')[0]
+    unless scroller
+      console.log(window.location.href)
+      console.log(document.getElementsByClassName('NP'))
+
+    scroller.scrollTop = 0
+
+
+    setTimeout ->
+      callbacks?.setup()
+
+      originalScroll = scroller.onscroll
+      scroller.onscroll = =>
+        callbacks?.step()
+        originalScroll.apply(window, [arguments...]) if originalScroll
+
+      scrollTimer = null
+      scrollFn = ->
+        curScroll = scroller.scrollTop
+
+        scroller.scrollTop += 200
+        if scroller.scrollTop is curScroll
+          scroller.onscroll = originalScroll
+          callbacks?.teardown()
+        else
+          scrollTimer = setTimeout(scrollFn, 100)
+
+      scrollFn()
+    , 100
+

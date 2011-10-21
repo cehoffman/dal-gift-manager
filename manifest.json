@@ -17,7 +17,7 @@
       "matches": [
         "https://plus.google.com/*"
       ],
-      "js": ["src/lib.js", "src/account.js", "src/g+.js"],
+      "js": ["vendor/date.js", "src/lib.js", "src/account.js", "src/g+.js", "src/circles.js"],
       "css": ["css/g+.css"],
       "run_at": "document_idle",
       "all_frames": false

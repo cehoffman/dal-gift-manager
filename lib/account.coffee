@@ -6,6 +6,18 @@ class Account
   @each: (callback) ->
     callback(account) for id, account of accounts
 
+  pageActionData:
+    circlePicker:
+      setIcon:
+        path: 'images/circle.png'
+      setTitle:
+        title: 'Use the selected users on this page for gift sending'
+    giftClaimer:
+      setIcon:
+        path: 'images/wrapped.png'
+      setTitle:
+        title: 'Claim your DAL gifts'
+
   constructor: (@id) ->
     @pageActions = {}
     @tabs = {}
@@ -18,20 +30,26 @@ class Account
       criteria['toAccount'] = id
       (new Gifters()).fetch(conditions: criteria, success: callback)
 
-    @gifters['add'] = (gifterId, callback) ->
-      defaultFn = ->
-        gifter.save {}, success: ->
-          callback(gifter) if callback
+    @gifters['add'] = (gifterId, attrs, callback) ->
+      if typeof attrs is 'function'
+        [attrs, callback] = [{}, attrs]
+      delete attrs['oid']
+      delete attrs['toAccount']
 
-      gifter = new Gifter(account: gifterId, toAccount: id)
+      defaultFn = ->
+        gifter.save attrs, success: ->
+          callback?(gifter)
+
+      gifter = new Gifter(oid: gifterId, toAccount: id)
       gifter.fetch success: defaultFn, error: defaultFn
 
     @gifters['sentGift'] = (gifterId, callback) ->
       defaultFn = ->
-        gifter.save {lastGift: new Date()}, success: ->
+        sentCount = (gifter.get('sentCount') || 0) + 1
+        gifter.save {lastGift: new Date(), sentCount}, success: ->
           callback(gifter) if callback
 
-      gifter = new Gifter(account: gifterId, toAccount: id)
+      gifter = new Gifter(oid: gifterId, toAccount: id)
       gifter.fetch success: defaultFn, error: defaultFn
 
 
@@ -102,11 +120,18 @@ class Account
   claimStopped: (tabId) ->
     @giftClaimer = undefined if @giftClaimer?.id is tabId
 
-  continueSendingGifts: (callback, sender) ->
-    @tabs['GPlus']?[sender.tab.id]?.continueSendingGifts()
-
   sendGifts: (callback, sender) ->
-    @tabs['ContactPicker']?[sender.tab.id]?.waitToAppear()
+    return unless picker = @tabs['ContactPicker']?[sender.tab.id]
+
+    picker.waitToAppear =>
+      @gifters (all) =>
+        all = (gifter.get('oid') for gifter in all.models when gifter.isGiftable())
+
+        picker.selectUsers all[0...10], (selected) =>
+          picker.sendGift =>
+            @gifters.sentGift(oid) for oid in selected
+            @tabs['DAL']?[sender.tab.id]?.continueSendingGifts() if all.length > 10
+
 
   registerTab: (name, callback, sender) ->
     collection = @tabs[name] ||= {}
@@ -115,8 +140,6 @@ class Account
     switch name
       when 'ContactPicker'
         return unless /plus\.google\.com\/games\/867517237916/.test(sender.tab.url)
-      when 'GPlus'
-        chrome.pageAction.show(sender.tab.id)
 
     instance = new window[name](sender.tab.id)
     collection[sender.tab.id] = instance
@@ -124,15 +147,36 @@ class Account
   unregisterTab: (name, callback, sender) ->
     delete @tabs[name][sender.tab.id] if @tabs[name]
 
-  showPageAction: (callback, sender) ->
-    if typeof @pageActions[sender.tab.id] isnt 'number'
-      chrome.pageAction.show(sender.tab.id)
-      @pageActions[sender.tab.id] = setTimeout =>
-        chrome.pageAction.show(sender.tab.id)
-        @pageActions[sender.tab.id] = true
+  showPageAction: (type, callback, sender) ->
+    if not @pageActions[sender.tab.id] || @pageActions[sender.tab.id] is type
+      clone = {}
+      for method, data of @pageActionData[type]
+        clone[method] = {}
+        clone[method][key] = value for key, value of data
+        clone[method].tabId = sender.tab.id
 
-  hidePageAction: (callback, sender) ->
-    if @pageActions[sender.tab.id]
+      applySettings = ->
+        chrome.pageAction.show(sender.tab.id)
+        for method, data of clone
+          tmp = {}
+          tmp[key] = value for key, value of data
+          chrome.pageAction[method](tmp)
+
+      if @pageActions[sender.tab.id] is type
+        applySettings()
+      else
+        @pageActions[sender.tab.id] = type
+        count = 0
+        pageActionTimer = setInterval =>
+          if ++count >= 10 || @pageActions[sender.tab.id] isnt type
+            clearInterval(pageActionTimer)
+          else
+            applySettings()
+        , 100
+
+
+  hidePageAction: (type, callback, sender) ->
+    if @pageActions[sender.tab.id] is type
       chrome.pageAction.hide(sender.tab.id)
       delete @pageActions[sender.tab.id]
 
@@ -180,7 +224,7 @@ if window.location.protocol isnt 'chrome-extension:'
     nullFn = ->
 
     walkMethodTree = (anchor, root, prefix = '') ->
-      for method of root
+      for method, body of root when typeof body is 'function'
         do (method) ->
           anchor[method] = (args...) ->
             if typeof args[args.length - 1] is 'function'

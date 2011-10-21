@@ -6,10 +6,6 @@ class GPlus extends TabApi
     @listenForGifts()
 
   @api
-    continueSendingGifts: ->
-      document.getElementById('feedback').display = 'none'
-      Event(document.getElementById('dal-send-autogift')).click()
-
     updateGift: (token, status, callback) ->
       for item in @gifts[token] || []
         @render(item, status)
@@ -58,7 +54,10 @@ class GPlus extends TabApi
 
   render: (node, status) ->
     node.setAttribute('data-claim-status', status)
-    @register() if not @active && status is 'unclaimed'
+    if not @active && status is 'unclaimed'
+      @register()
+    else if @numUnclaimedGiftsOnPage() is 0
+      @unregister()
 
   eachGift: (domNode, callback) ->
     if domNode.nodeName isnt '#text'
@@ -77,8 +76,6 @@ class GPlus extends TabApi
   listenForGifts: ->
     @content.addEventListener 'DOMNodeInserted', @domAdded.bind(@)
     @content.addEventListener 'DOMNodeRemoved', @domRemoved.bind(@)
-    chrome.extension.onRequest.addListener (request, sender, callback) =>
-      @[request.method]?([request.args..., callback]...)
 
   domAdded: (event) ->
     @eachGift event.target, (item, token, from) =>
@@ -112,12 +109,12 @@ class GPlus extends TabApi
 
   register: ->
     @active = true
-    Account.showPageAction()
+    Account.showPageAction('giftClaimer')
     super
 
   unregister: ->
     @active = false
-    Account.hidePageAction()
+    Account.hidePageAction('giftClaimer')
     super
 
 GPlus.enable()
