@@ -12,6 +12,8 @@ task :compile do
 end
 
 task :pack do
+  require 'base64'
+
   def rm_r(dir)
     [dir,
      *Dir[File.join(dir, '**', '*')],
@@ -30,6 +32,23 @@ task :pack do
     Dir.delete('-p') if File.exists?('-p')
 
     rm_r File.join('tmp', 'lib')
+
+    Dir[File.join('tmp', 'css', '*.css')].each do |file|
+      contents = File.read(file).gsub(/url\(chrome-extension:\/\/\w+\/([^)]+)\)/i) do |path|
+        fpath = File.join('tmp', *$1.split('?').first.split('/'))
+        next path unless File.exists?(fpath)
+
+        mime = case File.extname(fpath)
+        when '.png' then 'image/png'
+        else raise "Unknown file type for image #{File.extname(fpath)}"
+        end
+
+        base64 = [open(fpath, 'rb') { |f| f.read }].flatten.pack('m').gsub("\n", '')
+        "url('data:#{mime};base64,#{base64}')"
+      end
+
+      open(file, 'w') { |f| f << contents }
+    end
 
     system $chrome, "--pack-extension=#{File.join(Dir.pwd, 'tmp')}", "--pack-extension-key=#{File.join(Dir.pwd, "#$name.pem")}", '--no-message-box'
 
