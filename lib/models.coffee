@@ -59,9 +59,9 @@ database =
             event.target.result.continue()
 
       migrate: (db, versionRequest, next) ->
-        # store = versionRequest.transaction.objectStore('gifters')
-        # store.deleteIndex('accountIndex')
-        # store.createIndex('oidIndex', 'oid', unique: false)
+        store = versionRequest.transaction.objectStore('gifters')
+        store.deleteIndex('accountIndex')
+        store.createIndex('oidIndex', 'oid', unique: false)
         next()
       after: (db, next) ->
         txn = db.transaction(['gifters'], webkitIDBTransaction.READ_WRITE)
