@@ -126,7 +126,7 @@ class Account
     return unless picker = @tabs['ContactPicker']?[sender.tab.id]
 
     picker.waitToAppear =>
-      @gifters active: true, (all) =>
+      @gifters (all) =>
         all = (gifter.get('oid') for gifter in all.models when gifter.isGiftable())
 
         picker.selectUsers all[0...50], (selected) =>

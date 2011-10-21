@@ -117,6 +117,13 @@ database =
         store = versionRequest.transaction.objectStore('gifters')
         store.createIndex('activeIndex', 'active', unique: false)
         next()
+    },
+    {
+      version: '0.1.0'
+      migrate: (db, versionRequest, next) ->
+        store = versionRequest.transaction.objectStore('gifters')
+        store.deleteIndex('activeIndex')
+        next()
     }
   ]
 
@@ -166,7 +173,7 @@ class Gifter extends TimestampModel
     "#{toAccount}-#{oid}" if oid && toAccount
 
   isGiftable: ->
-    !@get('lastGift') || @get('lastGift') < (new Date() - 1000 * 60 * 60 * 24)
+    @get('active') && (!@get('lastGift') || @get('lastGift') < (new Date() - 1000 * 60 * 60 * 24))
 
 class Gifters extends Backbone.Collection
   model: Gifter
