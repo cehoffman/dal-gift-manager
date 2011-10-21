@@ -54,6 +54,11 @@ giftSending = setInterval ->
         event.initEvent('autogift', true, true)
         el.dispatchEvent(event)
       ).toString() + ')(this); ' + button.getAttribute('onclick'))
+
+    # Setup the visual queue of which tab the interface is on
+    for sibling in el.parentElement.childNodes when /(\s|^)tab(\s|$)/.test(sibling.className)
+      sibling.className = sibling.className.replace(/\s*selectedTab\s*/, '')
+    el.className = "#{el.className} selectedTab"
   ).toString() + ')(this);')
 
   link.innerText = 'Auto Gift'
