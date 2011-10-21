@@ -21,11 +21,10 @@ chrome.pageAction.onClicked.addListener (tab) ->
           oids[user.oid] = true for user in users
 
           for gifter in all.models when not oids[gifter.get('oid')]
-            console.log("Destorying ", gifter)
             gifter.destroy()
 
           for user in users
-            account.gifters.add(user.account, user)
+            account.gifters.add(user.oid, user)
 
 chrome.tabs.onRemoved.addListener (tabId) ->
   Account.each (account) ->

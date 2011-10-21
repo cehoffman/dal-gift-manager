@@ -21,7 +21,7 @@ class CircleSelection extends ContactScroller
         for el in [document.getElementsByClassName('vi-X')...]
           oid = el.getAttribute('oid')
           name = el.getElementsByClassName('tD bv')?[0]?.innerText
-          selected[account] = {oid, name} if oid
+          selected[oid] = {oid, name} if oid
 
       @scroll
         setup: getSelected
