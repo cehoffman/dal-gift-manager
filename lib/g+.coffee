@@ -86,8 +86,8 @@ class GPlus extends TabApi
       Account.gifts {token}, (gifts) =>
         if not gifts[0]
           Account.gifts.unclaimed.add(token)
-        else
-          @render(item, gifts[0].status)
+          gifts[0].status = 'unclaimed'
+        @render(item, gifts[0].status)
 
       if from
         Account.gifters {oid: from}, (gifters) =>
