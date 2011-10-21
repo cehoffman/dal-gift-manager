@@ -37,6 +37,8 @@ class Account
       delete attrs['toAccount']
 
       defaultFn = ->
+        # Initialize new gifters to active
+        attrs.active = true unless gifter.get('active') is false
         gifter.save attrs, success: ->
           callback?(gifter)
 
@@ -124,7 +126,7 @@ class Account
     return unless picker = @tabs['ContactPicker']?[sender.tab.id]
 
     picker.waitToAppear =>
-      @gifters (all) =>
+      @gifters active: true, (all) =>
         all = (gifter.get('oid') for gifter in all.models when gifter.isGiftable())
 
         picker.selectUsers all[0...50], (selected) =>

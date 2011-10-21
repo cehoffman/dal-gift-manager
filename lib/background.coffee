@@ -21,7 +21,7 @@ chrome.pageAction.onClicked.addListener (tab) ->
           oids[user.oid] = true for user in users
 
           for gifter in all.models when not oids[gifter.get('oid')]
-            gifter.destroy()
+            gifter.save({active: false})
 
           for user in users
             account.gifters.add(user.oid, user)

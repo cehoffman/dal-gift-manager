@@ -86,6 +86,37 @@ database =
               next() if ++writeCount is readCount && done
 
             event.target.result.continue()
+    },
+    {
+      version: '0.0.9'
+      before: (db, next) ->
+        txn = db.transaction(['gifters'], webkitIDBTransaction.READ_WRITE)
+        store = txn.objectStore('gifters')
+        cursor = store.openCursor()
+
+        readCount = 0
+        writeCount = 0
+        done = false
+        cursor.onsuccess = (event) ->
+          if not event.target.result
+            done = true
+            next() if writeCount is readCount
+          else
+            readCount++
+
+            obj = event.target.result.value
+            obj.active = true
+
+            wtxn = store.put(obj)
+            wtxn.onsuccess = ->
+              next() if ++writeCount is readCount && done
+
+
+            event.target.result.continue()
+      migrate: (db, versionRequest, next) ->
+        store = versionRequest.transaction.objectStore('gifters')
+        store.createIndex('activeIndex', 'active', unique: false)
+        next()
     }
   ]
 
