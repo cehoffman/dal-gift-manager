@@ -35,6 +35,10 @@ a[data-claim-status=error]:before {
   -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/error.png?123);
 }
 
+a[data-claim-status=expired]:before {
+  -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/expired.png?123);
+}
+
 a[data-claim-status=stolen]:before {
   -webkit-mask-box-image: url(chrome-extension://mgcofonngbfflpmikhcmkonibglghcaf/images/stolenalt.png?123);
   margin-top: 5px;
