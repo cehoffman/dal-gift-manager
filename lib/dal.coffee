@@ -43,7 +43,7 @@ class DAL extends TabApi
     # Set a timeout for how long to wait for gift claim before skipping
     setTimeout ->
       clearInterval giftCheck
-      Account.claimFinished()
+      callback('error')
     , 15000
 
   hookAutoGiftSending: ->
