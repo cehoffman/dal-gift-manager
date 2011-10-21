@@ -90,7 +90,7 @@ class GPlus extends TabApi
           @render(item, gifts[0].status)
 
       if from
-        Account.gifters {account: from}, (gifters) =>
+        Account.gifters {oid: from}, (gifters) =>
           if not gifters[0]
             Account.gifters.add(from)
 
