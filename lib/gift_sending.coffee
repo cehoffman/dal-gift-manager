@@ -1,41 +1,32 @@
-class ContactPicker
-  constructor: ->
-    @waitingToDetect = false
+class ContactPicker extends TabApi
+  setup: ->
+    @register()
 
-  listenForGooglePicker: ->
-    document.body.addEventListener 'DOMNodeInserted', @domAdded.bind(@)
-    # document.body.addEventListener 'DOMNodeRemoved', @domRemoved.bind(@)
+  @api
+    waitToAppear: ->
+      if window.innerWidth is 0
+        @waitingToDetect = setTimeout(@waitToAppear.bind(@), 100)
+      else
+        @waitingToDetect = false
+        Account.gifters (allGifters) =>
+          @gifters = {}
+          count = 0
 
-  domAdded: (event) ->
-    Account.isSendingGift (isSending) =>
-      if isSending && not @waitingToDetect && window.innerWidth is 0
-        @scrollTimer = undefined
-        @waitToAppear()
+          aDayAgo = new Date() - 1000 * 60 * 60 * 24
+          for gifter in allGifters
+            if not gifter.lastGift || gifter.lastGift < aDayAgo
+              @gifters[gifter.account] = true
+              break if ++count >= 50
 
-  waitToAppear: ->
-    if window.innerWidth is 0
-      @waitingToDetect = setTimeout(@waitToAppear.bind(@), 100)
-    else
-      @waitingToDetect = false
-      Account.gifters (allGifters) =>
-        @gifters = {}
-        count = 0
+          @scroller = document.getElementsByClassName('NP')[0]
 
-        aDayAgo = new Date() - 1000 * 60 * 60 * 24
-        for gifter in allGifters
-          if not gifter.lastGift || gifter.lastGift < aDayAgo
-            @gifters[gifter.account] = true
-            break if ++count >= 50
+          originalScroll = @scroller.onscroll
+          @scroller.onscroll = =>
+            @pickVisible()
+            originalScroll.apply(window, [arguments...]) if originalScroll
 
-        @scroller = document.getElementsByClassName('NP')[0]
-
-        originalScroll = @scroller.onscroll
-        @scroller.onscroll = =>
           @pickVisible()
-          originalScroll.apply(window, [arguments...]) if originalScroll
-
-        @pickVisible()
-        @scrollContacts()
+          @scrollContacts()
 
   pickVisible: ->
     for el in [document.getElementsByClassName('cl')...]
@@ -80,5 +71,4 @@ class ContactPicker
       setTimeout((-> clearInterval(waitingToSend)), 15000)
     , 100
 
-
-(new ContactPicker()).listenForGooglePicker()
+ContactPicker.enable()

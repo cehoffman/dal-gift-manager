@@ -1,49 +1,43 @@
-class GPlus
-  constructor: ->
+class GPlus extends TabApi
+  setup: ->
     @content = document.getElementById('content')
     @gifts = {}
     @maxRounds = 5
+    @listenForGifts()
 
-  listenForGifts: ->
-    @content.addEventListener 'DOMNodeInserted', @domAdded.bind(@)
-    @content.addEventListener 'DOMNodeRemoved', @domRemoved.bind(@)
-    chrome.extension.onRequest.addListener (request, sender, callback) =>
-      @[request.method]?([request.args..., callback]...)
+  @api
+    continueSendingGifts: ->
+      document.getElementById('feedback').display = 'none'
+      Event(document.getElementById('dal-send-autogift')).click()
 
-  giftToken: giftHash
+    updateGift: (token, status, callback) ->
+      for item in @gifts[token] || []
+        @render(item, status)
 
-  continueSendingGifts: (callback) ->
-    document.getElementById('feedback').display = 'none'
-    Event(document.getElementById('dal-send-autogift')).click()
+    fetchAllGifts: (callback, prevGiftCount, prevUnclaimedCount, roundCount = 0) ->
+      if roundCount is 0
+        prevUnclaimedCount = @numUnclaimedGiftsOnPage()
+        prevGiftCount = @numGiftsOnPage()
 
-  updateGift: (token, status, callback) ->
-    for item in @gifts[token] || []
-      @render(item, status)
+        # Don't bother fetching more gifts if all displayed gifts are claimed
+        return if prevUnclaimedCount is 0 and prevGiftCount > 0
+        Account.claimStart()
 
-  fetchAllGifts: (callback, prevGiftCount, prevUnclaimedCount, roundCount = 0) ->
-    if roundCount is 0
-      prevUnclaimedCount = @numUnclaimedGiftsOnPage()
-      prevGiftCount = @numGiftsOnPage()
+      moreButton = document.getElementsByClassName('a-j hk ir')[0]
 
-      # Don't bother fetching more gifts if all displayed gifts are claimed
-      return if prevUnclaimedCount is 0 and prevGiftCount > 0
-      Account.claimStart()
+      Event(moreButton).click()
 
-    moreButton = document.getElementsByClassName('a-j hk ir')[0]
+      moreTimer = setInterval =>
+        if moreButton.offsetWidth isnt 0
+          clearInterval(moreTimer)
 
-    Event(moreButton).click()
+          unclaimedCount = @numUnclaimedGiftsOnPage()
+          giftCount = @numGiftsOnPage()
 
-    moreTimer = setInterval =>
-      if moreButton.offsetWidth isnt 0
-        clearInterval(moreTimer)
+          if (unclaimedCount isnt prevUnclaimedCount || giftCount is prevGiftCount) && roundCount < @maxRounds
+            @fetchAllGifts(callback, giftCount, unclaimedCount, roundCount + 1)
 
-        unclaimedCount = @numUnclaimedGiftsOnPage()
-        giftCount = @numGiftsOnPage()
-
-        if (unclaimedCount isnt prevUnclaimedCount || giftCount is prevGiftCount) && roundCount < @maxRounds
-          @fetchAllGifts(callback, giftCount, unclaimedCount, roundCount + 1)
-
-    , 100
+      , 100
 
   numGiftsOnPage: ->
     count = 0
@@ -60,6 +54,7 @@ class GPlus
           break
     count
 
+  giftToken: giftHash
 
   render: (node, status) ->
     node.setAttribute('data-claim-status', status)
@@ -78,6 +73,12 @@ class GPlus
               giftFrom = undefined
             callback(item, token, giftFrom)
 
+  listenForGifts: ->
+    @content.addEventListener 'DOMNodeInserted', @domAdded.bind(@)
+    @content.addEventListener 'DOMNodeRemoved', @domRemoved.bind(@)
+    chrome.extension.onRequest.addListener (request, sender, callback) =>
+      @[request.method]?([request.args..., callback]...)
+
   domAdded: (event) ->
     @eachGift event.target, (item, token, from) =>
       list = @gifts[token] ||= []
@@ -95,7 +96,7 @@ class GPlus
           if not gifters[0]
             Account.gifters.add(from)
 
-    @activate() if not @active && @numGiftsOnPage() > 0
+    @register() if not @active && @numGiftsOnPage() > 0
 
   domRemoved: (event) ->
     @eachGift event.target, (item, token) =>
@@ -106,16 +107,18 @@ class GPlus
 
     if @active
       if @numGiftsOnPage() > 0
-        @activate()
+        @register()
       else
-        @deactivate()
+        @unregister()
 
-  activate: ->
+  register: ->
     @active = true
-    Account.addTab()
+    Account.showPageAction()
+    super
 
-  deactivate: ->
+  unregister: ->
     @active = false
-    Account.removeTab()
+    Account.hidePageAction()
+    super
 
-(new GPlus()).listenForGifts()
+GPlus.enable()

@@ -10,7 +10,8 @@ chrome.extension.onRequest.addListener (request, sender, callback) ->
     next.apply(root, args)
 
 chrome.pageAction.onClicked.addListener (tab) ->
-  chrome.tabs.sendRequest(tab.id, {method: 'fetchAllGifts', args: []})
+  Account.each (account) ->
+    account.tabs['GPlus']?[tab.id]?.fetchAllGifts()
 
 chrome.tabs.onRemoved.addListener (tabId) ->
   Account.each (account) ->

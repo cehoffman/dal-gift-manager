@@ -7,8 +7,8 @@ class Account
     callback(account) for id, account of accounts
 
   constructor: (@id) ->
+    @pageActions = {}
     @tabs = {}
-    @giftTabs = {}
 
     @gifters = (criteria, callback) ->
       if typeof criteria is 'function'
@@ -62,8 +62,8 @@ class Account
               # Take care of possible automated claimer
               @claimFinished() if @giftClaimer && criteria isnt 'unclaimed'
 
-              for tabId, _ of @tabs
-                chrome.tabs.sendRequest(+tabId, {method: 'updateGift', args: [token, criteria]})
+              for tabId, tab of @tabs['GPlus'] || []
+                tab.updateGift(token, criteria)
 
               callback(gift) if typeof callback is 'function'
 
@@ -103,32 +103,38 @@ class Account
     @giftClaimer = undefined if @giftClaimer?.id is tabId
 
   continueSendingGifts: (callback, sender) ->
-    chrome.tabs.sendRequest(sender.tab.id, {method: 'continueSendingGifts', args: []})
+    @tabs['GPlus']?[sender.tab.id]?.continueSendingGifts()
 
   sendGifts: (callback, sender) ->
-    @giftTabs[sender.tab.id] = true
-    setTimeout (=> @giftTabs[sender.tab.id] = false), 1000
+    @tabs['ContactPicker']?[sender.tab.id]?.waitToAppear()
 
-  isSendingGift: (callback, sender) ->
-    callback(!!@giftTabs[sender.tab.id])
+  registerTab: (name, callback, sender) ->
+    collection = @tabs[name] ||= {}
+    return if collection[sender.tab.id]
 
-  addTab: (callback, sender) ->
-    # Absolute crap that I have to put this on a timeout
-    # otherwise it pops active and then disappears on page refresh
-    if typeof @tabs[sender.tab.id] isnt 'number'
-      chrome.pageAction.show(sender.tab.id)
-      @tabs[sender.tab.id] = setTimeout(=>
+    switch name
+      when 'ContactPicker'
+        return unless /plus\.google\.com\/games\/867517237916/.test(sender.tab.url)
+      when 'GPlus'
         chrome.pageAction.show(sender.tab.id)
-        @tabs[sender.tab.id] = true
-      , 1000)
-    null
 
-  removeTab: (callback, sender) ->
-    if @tabs[sender.tab.id]
-      clearTimeout(@tabs[sender.tab.id])
+    instance = new window[name](sender.tab.id)
+    collection[sender.tab.id] = instance
+
+  unregisterTab: (name, callback, sender) ->
+    delete @tabs[name][sender.tab.id] if @tabs[name]
+
+  showPageAction: (callback, sender) ->
+    if typeof @pageActions[sender.tab.id] isnt 'number'
+      chrome.pageAction.show(sender.tab.id)
+      @pageActions[sender.tab.id] = setTimeout =>
+        chrome.pageAction.show(sender.tab.id)
+        @pageActions[sender.tab.id] = true
+
+  hidePageAction: (callback, sender) ->
+    if @pageActions[sender.tab.id]
       chrome.pageAction.hide(sender.tab.id)
-      delete @tabs[sender.tab.id]
-    null
+      delete @pageActions[sender.tab.id]
 
 if window.location.protocol isnt 'chrome-extension:'
   do ->
@@ -190,8 +196,11 @@ if window.location.protocol isnt 'chrome-extension:'
                 chrome.extension.sendRequest(signature...)
             else
               # Wait until it is needed to get the account id
-              Event(idDiv).click() if queue.length is 0
-              queue.push signature
+              if queue.length is 0
+                queue.push signature
+                Event(idDiv).click()
+              else
+                queue.push signature
 
         walkMethodTree(anchor[method], root[method], "#{prefix}#{method}.")
 
