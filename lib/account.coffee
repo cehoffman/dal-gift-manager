@@ -139,6 +139,9 @@ class Account
 
     switch name
       when 'ContactPicker'
+        # Only allow the contact picker, which attaches itself to a generic
+        # google contact picker to only register itself when coming from a tab
+        # that has the DAL game loaded in it
         return unless /plus\.google\.com\/games\/867517237916/.test(sender.tab.url)
 
     instance = new window[name](sender.tab.id)
