@@ -127,10 +127,10 @@ class Account
       @gifters (all) =>
         all = (gifter.get('oid') for gifter in all.models when gifter.isGiftable())
 
-        picker.selectUsers all[0...10], (selected) =>
+        picker.selectUsers all[0...50], (selected) =>
           picker.sendGift =>
             @gifters.sentGift(oid) for oid in selected
-            @tabs['DAL']?[sender.tab.id]?.continueSendingGifts() if all.length > 10
+            @tabs['DAL']?[sender.tab.id]?.continueSendingGifts() if all.length > 50
 
 
   registerTab: (name, callback, sender) ->
