@@ -96,7 +96,7 @@ class GPlus extends TabApi
           if not gifters[0]
             Account.gifters.add(from)
 
-    @register() if not @active && @numGiftsOnPage() > 0
+    @register() if not @active && @numUnclaimedGiftsOnPage() > 0
 
   domRemoved: (event) ->
     @eachGift event.target, (item, token) =>
