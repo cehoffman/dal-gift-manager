@@ -14,7 +14,7 @@ class ContactPicker extends TabApi
 
           aDayAgo = new Date() - 1000 * 60 * 60 * 24
           for gifter in allGifters
-            if not gifter.lastGift || gifter.lastGift < aDayAgo
+            if not gifter.get('lastGift') || gifter.get('lastGift') < aDayAgo
               @gifters[gifter.account] = true
               break if ++count >= 50
 
