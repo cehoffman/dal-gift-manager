@@ -128,14 +128,28 @@ database =
   ]
 
 class AutoIdModel extends Backbone.Model
-  save: ->
+  save: (attrs, options) ->
     @set({id}) if !(@id || @get('id')) && id = @_autoId()
+
+    success = options.success
+    options.success = ->
+      @persisted = true
+      success?(arguments...)
+
     super
 
-  fetch: ->
+  fetch: (options) ->
     @set({id}) if !(@id || @get('id')) && id = @_autoId()
+
+    success = options.success
+    options.success = =>
+      @persisted = true
+      success?(arguments...)
+
     super
 
+  isNew: ->
+    not @persisted
 
 class TimestampModel extends AutoIdModel
   save: ->
@@ -157,6 +171,8 @@ class Gift extends TimestampModel
     "#{toAccount}-#{token}" if token && toAccount
 
   url: ->
+    return @get('href') if @get('href')
+
     params = btoa(JSON.stringify(page: 'acceptedGift', token: @get('token')))
     params = encodeURIComponent(JSON.stringify(encPrms: params))
     "https://plus.google.com/games/867517237916/params/#{params}/source/3/"

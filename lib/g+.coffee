@@ -61,7 +61,7 @@ class GPlus extends TabApi
 
   eachGift: (domNode, callback) ->
     if domNode.nodeName isnt '#text'
-      for item in domNode.getElementsByClassName('c-i-j-ua')
+      for item in [domNode.getElementsByClassName('c-i-j-ua')...]
         if item.childNodes[item.childNodes.length - 1].nodeName is '#text'
           if token = @giftToken(item.href)
             if /\/(u\/\d+\/)?games\/notifications/.test(window.location.pathname)
@@ -85,9 +85,10 @@ class GPlus extends TabApi
 
       Account.gifts {token}, (gifts) =>
         if not gifts[0]
-          Account.gifts.unclaimed.add(token)
-          gifts[0].status = 'unclaimed'
-        @render(item, gifts[0].status)
+          Account.gifts.unclaimed.add {token, href: item.href},(gift) =>
+            @render(item, gift.status)
+        else
+          @render(item, gifts[0].status)
 
       if from
         Account.gifters {oid: from}, (gifters) =>

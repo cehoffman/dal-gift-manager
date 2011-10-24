@@ -54,6 +54,14 @@ class DAL extends TabApi
       link = document.createElement('a')
       link.setAttribute('class', 'tab')
       link.setAttribute('onclick', '(' + ((el)->
+        replaceClass = (original, replacement, elements) ->
+          comparator = new RegExp("(\\s|^)#{original}(\\s|$)", 'i')
+          for node in elements when comparator.test(node.className)
+            classes = node.className.split(' ')
+            classes = (klass for klass in classes when klass isnt '' and klass isnt original)
+            classes.push(replacement)
+            node.className = classes.join(' ')
+
         requestGifting true, url: giftingParams.url, data: giftingParams.data, success: (data) ->
           onGiftContainerShow(data)
 
@@ -67,9 +75,23 @@ class DAL extends TabApi
             el.dispatchEvent(event)
           ).toString() + ')(this); ' + button.getAttribute('onclick'))
 
+          form = document.getElementById('giftForm')
+          locked = Array::slice.apply(form.getElementsByClassName('locked'))
+
+          replaceClass('locked', 'available', locked)
+
+          for item in locked
+            item.setAttribute('onclick', "selectTheGift(#{item.id.match(/cell(\d+)/)[1]});")
+
+          for item in Array::slice.apply(form.getElementsByClassName('giftingLevelRestriction'))
+            item.parentElement.removeChild(item)
+
+
         # Setup the visual queue of which tab the interface is on
-        for sibling in el.parentElement.childNodes when /(\s|^)tab(\s|$)/.test(sibling.className)
-          sibling.className = sibling.className.replace(/\s*selectedTab\s*/, '')
+        # for sibling in el.parentElement.childNodes when /(\s|^)tab(\s|$)/.test(sibling.className)
+        #   sibling.className = sibling.className.replace(/\s*selectedTab\s*/, '')
+        replaceClass('selectedTab', '', el.parentElement.childNodes)
+
         el.className = "#{el.className} selectedTab"
       ).toString() + ')(this);')
 

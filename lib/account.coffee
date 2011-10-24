@@ -72,9 +72,16 @@ class Account
           query['status'] = criteria
           @gifts(query, callback)
 
-        @gifts[criteria]['add'] = (token, callback) =>
-          defaultFn = =>
+        @gifts[criteria]['add'] = (attrs, callback) =>
+          if typeof attrs is 'string'
+            token = attrs
             attrs = {status: criteria}
+          else
+            token = attrs.token
+            attrs.status = criteria
+            delete attrs.token
+
+          defaultFn = =>
             if criteria isnt 'unclaimed'
               attrs['claimTries'] = (gift.get('claimTries') || 0) + 1
 
@@ -85,35 +92,36 @@ class Account
               for tabId, tab of @tabs['GPlus'] || []
                 tab.updateGift(token, criteria)
 
-              callback(gift) if typeof callback is 'function'
+              callback?(gift)
 
           gift = new Gift({token, toAccount: id})
           gift.fetch success: defaultFn, error: defaultFn
 
   claimFinished: ->
     # Get a single unclaimed gift
-    @gifts.unclaimed {limit: 1}, (gifts) =>
-        # If there was no gift found look for gifts that had
-        # errors when trying to claim and pick any that have
-        # not been tried 5 times yet and mark them as unclaimed
-        # again. The first one found kicks off the claim machine
-        # on success and ends it all on error
-        if not (gift = gifts.at(0))
-          @gifts.error (gifts) =>
-              retryable = (gift for gift in gifts.models when (gift.get('claimTries') || 0) < 5)
-              if retryable.length > 0
-                @gifts.unclaimed.add retryable[0].get('token'), @claimFinished.bind(@)
-                  # error: => chrome.tabs.remove(@giftClaimer.id)
-                @gifts.unclaimed.add gift.get('token') for gift in retryable[1..-1]
-              else
-                chrome.tabs.remove(@giftClaimer.id) if @giftClaimer
-            # error: =>
-            #   chrome.tabs.remove(@giftClaimer.id)
+    @gifts.unclaimed (gifts) =>
+      gifts.comparator = (gift) -> gift.get('createdAt')
+      # If there was no gift found look for gifts that had
+      # errors when trying to claim and pick any that have
+      # not been tried 5 times yet and mark them as unclaimed
+      # again. The first one found kicks off the claim machine
+      # on success and ends it all on error
+      if not (gift = gifts.sort().at(gifts.length - 1))
+        @gifts.error (gifts) =>
+            retryable = (gift for gift in gifts.models when (gift.get('claimTries') || 0) < 5)
+            if retryable.length > 0
+              @gifts.unclaimed.add retryable[0].get('token'), @claimFinished.bind(@)
+                # error: => chrome.tabs.remove(@giftClaimer.id)
+              @gifts.unclaimed.add gift.get('token') for gift in retryable[1..-1]
+            else
+              chrome.tabs.remove(@giftClaimer.id) if @giftClaimer
+          # error: =>
+          #   chrome.tabs.remove(@giftClaimer.id)
+      else
+        if @giftClaimer
+          chrome.tabs.update(@giftClaimer.id, url: gift.url())
         else
-          if @giftClaimer
-            chrome.tabs.update(@giftClaimer.id, url: gift.url())
-          else
-            chrome.tabs.create({url: gift.url(), selected: false}, (tab) => @giftClaimer = tab)
+          chrome.tabs.create({url: gift.url(), selected: false}, (tab) => @giftClaimer = tab)
       # error: =>
       #   chrome.tabs.remove(@giftClaimer.id) if @giftClaimer
 
@@ -204,14 +212,20 @@ if window.location.protocol isnt 'chrome-extension:'
         tries = 0
         postId = (user) ->
           tries++
-          if user.id
+          console.log("Trying to get account id on try #{tries}", user)
+          if user?.id
             alertIdReady(user.id)
           else if user?.error?.message is 'quota exceeded'
             setTimeout((-> google.plusone.api('/people/me', postId)), 1000 * 60 * 5)
           else if tries < 5
             setTimeout((-> google.plusone.api('/people/me', postId)), 100)
 
-        google.plusone.api '/people/me', postId
+        console.log("Trying to get account id on try #{tries}")
+
+        if google?.plusone?
+          google.plusone.api '/people/me', postId
+        else
+          setTimeout postId, 100
     ).toString() + ')(this);')
     document.body.appendChild(idDiv)
 

@@ -104,13 +104,12 @@ class ContactScroller extends TabApi
 
     scroller.scrollTop = 0
 
-
     setTimeout ->
-      callbacks?.setup()
+      callbacks?.setup?()
 
       originalScroll = scroller.onscroll
       scroller.onscroll = =>
-        callbacks?.step()
+        callbacks?.step?()
         originalScroll.apply(window, [arguments...]) if originalScroll
 
       scrollTimer = null
@@ -120,7 +119,7 @@ class ContactScroller extends TabApi
         scroller.scrollTop += 200
         if scroller.scrollTop is curScroll
           scroller.onscroll = originalScroll
-          callbacks?.teardown()
+          callbacks?.teardown?()
         else
           scrollTimer = setTimeout(scrollFn, 100)
 
