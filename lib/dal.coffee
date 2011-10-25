@@ -71,7 +71,7 @@ class DAL extends TabApi
           button.setAttribute('value', 'Send to All >>')
           button.setAttribute('onclick', '(' + ((el) ->
             event = document.createEvent('Events')
-            event.initEvent('autogift', true, true)
+            event.initEvent('user:autogift', true, true)
             el.dispatchEvent(event)
           ).toString() + ')(this); ' + button.getAttribute('onclick'))
 
@@ -98,15 +98,21 @@ class DAL extends TabApi
       link.innerText = 'Auto Gift'
       tabs.insertBefore(link, tabs.childNodes[0])
 
-      window.addEventListener 'autogift', (event) ->
-        Account.sendGifts()
+      window.addEventListener 'user:autogift', (event) =>
+        Account.sendGifts(@sentGifts, @totalGifters)
 
     , 1000
 
   @api
-    continueSendingGifts: ->
+    continueSendingGifts: (@sentGifts, @totalGifters) ->
       document.getElementById('feedback').style.display = 'none'
       Event(document.getElementById('dal-send-autogift')).click()
+
+    doneSendingGifts: ->
+      delete @sentGifts
+      delete @totalGifters
+      document.getElementById('feedback').style.display = 'none'
+      Event(document.getElementsByClassName('giftButton giftSkip')[0]).click()
 
 DAL.enable()
 

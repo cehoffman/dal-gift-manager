@@ -130,18 +130,37 @@ class Account
   claimStopped: (tabId) ->
     @giftClaimer = undefined if @giftClaimer?.id is tabId
 
-  sendGifts: (callback, sender) ->
+  sendGifts: (sentGifts = 0, totalGifters, callback, sender) ->
     return unless picker = @tabs['ContactPicker']?[sender.tab.id]
 
-    picker.waitToAppear =>
-      @gifters (all) =>
+    pbar = @tabs['ProgressBar']?[sender.tab.id] || {showProgress: (_, cb) -> cb?() }
+    dal = @tabs['DAL']?[sender.tab.id] || {continueSendingGifts: (->), doneSendingGifts: ->}
+    gifters = @gifters
+
+    picker.waitToAppear ->
+      gifters (all) ->
         all = (gifter.get('oid') for gifter in all.models when gifter.isGiftable())
+        totalGifters ||= all.length
+        lot = all[0...50]
 
-        picker.selectUsers all[0...50], (selected) =>
-          picker.sendGift =>
-            @gifters.sentGift(oid) for oid in selected
-            @tabs['DAL']?[sender.tab.id]?.continueSendingGifts() if all.length > 50
+        if totalGifters is 0
+          progress = 50
+        else
+          progress = (sentGifts + lot.length / 2.0) / totalGifters * 100.0
 
+        pbar.showProgress progress
+        picker.selectUsers lot, (selected) ->
+          if selected.length > 0
+            pbar.showProgress (sentGifts + lot.length) / totalGifters * 100.0
+            picker.sendGift ->
+              gifters.sentGift(oid) for oid in selected
+              if all.length > 50
+                dal.continueSendingGifts(sentGifts + lot.length, totalGifters)
+              else
+                pbar.showProgress 100, ->
+                  dal.doneSendingGifts()
+          else
+            pbar.showProgress(100, -> picker.cancel())
 
   registerTab: (name, callback, sender) ->
     collection = @tabs[name] ||= {}

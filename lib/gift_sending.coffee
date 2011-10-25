@@ -13,7 +13,7 @@ class ContactPicker extends ContactScroller
       setTimeout((-> clearInterval(waiter)), 5000)
 
     sendGift: (callback) ->
-      preview = document.getElementsByClassName('a-wc-na')[0]
+      preview = document.getElementsByName('ok')[0]
       Event(preview).click()
 
       setTimeout =>
@@ -29,5 +29,10 @@ class ContactPicker extends ContactScroller
 
         waitingTimeout = setTimeout((-> clearInterval(waitingToSend)), 35000)
       , 100
+
+    cancel: (callback) ->
+      cancel = document.getElementsByName('cancel')[0]
+      Event(cancel).click()
+      callback?()
 
 ContactPicker.enable()
