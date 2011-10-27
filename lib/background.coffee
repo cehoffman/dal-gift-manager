@@ -1,10 +1,13 @@
 chrome.extension.onRequest.addListener (request, sender, callback) ->
   next = Account.find(sender.tab.id)
-  root = null
-  for part in request.method.split('.')
-    [root, next] = [next, next[part]]
-  args = [request.args..., callback, sender]
-  next.apply(root, args)
+  if next.id || request.method is 'setId'
+    root = null
+    for part in request.method.split('.')
+      [root, next] = [next, next[part]]
+    args = [request.args..., callback, sender]
+    next.apply(root, args)
+  else
+    console.log("There is no id set for tab #{sender.tab.id} in order to run #{request.method} with args", request.args)
 
 chrome.pageAction.onClicked.addListener (tab) ->
   account = Account.find(tab.id)
