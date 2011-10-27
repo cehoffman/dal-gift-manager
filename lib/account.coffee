@@ -12,10 +12,10 @@ class Account
     delete tab2account[id]
     console.log "Removing tab instance for #{id}"
 
-    # If at least one tab has this account open in it then keep the
-    # account instance around. Otherwise it should be deleted
     if accountId
-      return for tabId, account of accounts when account.id is accountId
+      # If at least one tab has this account open in it then keep the
+      # account instance around. Otherwise it should be deleted
+      return for tabId, account of tab2account when account.id is accountId
       console.log("Removing last account instance")
       delete accounts[accountId]
 
