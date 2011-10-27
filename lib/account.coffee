@@ -105,7 +105,7 @@ class Account
             if criteria isnt 'unclaimed'
               attrs['claimTries'] = (gift.get('claimTries') || 0) + 1
 
-            gift.save attrs, success: =>
+            gift.save attrs, success: ->
               # Take care of possible automated claimer
               self.claimFinished() if self.giftClaimer && criteria isnt 'unclaimed'
 
