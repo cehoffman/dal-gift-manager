@@ -61,6 +61,7 @@ end
 task :distribute => [:pack] do
   dropbox = File.expand_path("~/Dropbox/Public/forums/bioware")
   File.rename($crx, File.join(dropbox, $crx))
+  puts "Extension is ready at #{File.join(dropbox, $crx)}"
 end
 
 task :release => [:distribute] do
