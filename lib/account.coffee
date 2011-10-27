@@ -7,7 +7,7 @@ class Account
     tab2account[id] ||= new @()
 
   @remove: (id) ->
-    tab2account[id]?.claimStopped()
+    tab2account[id]?.claimStopped(id)
     accountId = tab2account[id]?.id
     delete tab2account[id]
 
