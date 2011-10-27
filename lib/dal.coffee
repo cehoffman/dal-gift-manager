@@ -33,18 +33,16 @@ class DAL extends TabApi
     token
 
   reportGiftStatus: (callback) ->
+    tries = 0
     giftCheck = setInterval ->
       confirmation = document.getElementsByClassName('giftPage')
       if confirmation.length is 1
         clearInterval giftCheck
         callback?(confirmation[0].innerText)
+      else if ++tries > 15
+        clearInterval giftCheck
+        callback?('error')
     , 1000
-
-    # Set a timeout for how long to wait for gift claim before skipping
-    setTimeout ->
-      clearInterval giftCheck
-      callback('error')
-    , 15000
 
   hookAutoGiftSending: ->
     giftSending = setInterval ->
