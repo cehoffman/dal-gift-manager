@@ -24,6 +24,15 @@
     },
     {
       "matches": [
+        "https://plus.google.com/*"
+      ],
+      "js": ["src/lib.js", "src/account.js", "src/gift_listener.js"],
+      "css": ["css/g+.css"],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": [
         "https://*.googleusercontent.com/gadgets/ifr?url=app://867517237916/game*"
       ],
       "js": ["src/lib.js", "src/account.js", "src/dal.js"],

@@ -109,7 +109,7 @@ class Account
               # Take care of possible automated claimer
               self.claimFinished() if self.giftClaimer && criteria isnt 'unclaimed'
 
-              for tabId, tab of self.tabs['GPlus'] || []
+              for tabId, tab of self.tabs['GiftListener'] || []
                 tab.updateGift(token, criteria)
 
               callback?(gift)
