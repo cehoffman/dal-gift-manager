@@ -97,10 +97,7 @@ class ContactScroller extends TabApi
         teardown: -> callback?(selected)
 
   scroll: (callbacks) ->
-    scroller = document.getElementsByClassName('NP')[0]
-    unless scroller
-      console.log(window.location.href)
-      console.log(document.getElementsByClassName('NP'))
+    return unless scroller = document.getElementsByClassName('NP')[0]
 
     scroller.scrollTop = 0
 
