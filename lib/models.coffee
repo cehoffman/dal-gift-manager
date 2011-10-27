@@ -128,7 +128,7 @@ database =
   ]
 
 class AutoIdModel extends Backbone.Model
-  save: (attrs, options) ->
+  save: (attrs, options = {}) ->
     @set({id}) if !(@id || @get('id')) && id = @_autoId()
 
     success = options.success
@@ -138,7 +138,7 @@ class AutoIdModel extends Backbone.Model
 
     super
 
-  fetch: (options) ->
+  fetch: (options = {}) ->
     @set({id}) if !(@id || @get('id')) && id = @_autoId()
 
     success = options.success
