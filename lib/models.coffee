@@ -148,12 +148,12 @@ class AutoIdModel extends Backbone.Model
 
     super
 
-  isNew: ->
+  isPersisted: ->
     not @persisted
 
 class TimestampModel extends AutoIdModel
   save: ->
-    @set('createdAt': new Date()) if @isNew()
+    @set('createdAt': new Date()) if @isPersisted()
     @set('updatedAt': new Date())
 
     super
