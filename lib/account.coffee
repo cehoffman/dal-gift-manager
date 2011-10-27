@@ -1,10 +1,26 @@
 class Account
+  # Indexed by tab id
+  tab2account = {}
   accounts = {}
+
   @find: (id) ->
-    accounts[id] ||= new @(id)
+    tab2account[id] ||= new @()
+
+  @remove: (id) ->
+    tab2account[id]?.claimStopped()
+    accountId = tab2account[id].id
+    delete tab2account[id]
+    console.log "Removing tab instance for #{id}"
+
+    # If at least one tab has this account open in it then keep the
+    # account instance around. Otherwise it should be deleted
+    if accountId
+      return for tabId, account of accounts when account.id is accountId
+      console.log("Removing last account instance")
+      delete accounts[accountId]
 
   @each: (callback) ->
-    callback(account) for id, account of accounts
+    callback(account) for id, account of tab2account
 
   pageActionData:
     circlePicker:
@@ -18,7 +34,16 @@ class Account
       setTitle:
         title: 'Claim your DAL gifts'
 
-  constructor: (@id) ->
+  setId: (@id, callback, sender) ->
+    if accounts[@id]
+      console.log("Setting tab #{sender.tab.id} to existing account data #{@id}")
+      tab2account[sender.tab.id] = accounts[@id]
+    else
+      console.log("Setting id for #{sender.tab.id} to #{@id}")
+      accounts[@id] = this
+
+  constructor: ->
+    self = this
     @pageActions = {}
     @tabs = {}
 
@@ -27,7 +52,7 @@ class Account
         callback = criteria
         criteria = {}
 
-      criteria['toAccount'] = id
+      criteria['toAccount'] = self.id
       (new Gifters()).fetch(conditions: criteria, success: callback)
 
     @gifters['add'] = (gifterId, attrs, callback) ->
@@ -42,7 +67,7 @@ class Account
         gifter.save attrs, success: ->
           callback?(gifter)
 
-      gifter = new Gifter(oid: gifterId, toAccount: id)
+      gifter = new Gifter(oid: gifterId, toAccount: self.id)
       gifter.fetch success: defaultFn, error: defaultFn
 
     @gifters['sentGift'] = (gifterId, callback) ->
@@ -51,28 +76,27 @@ class Account
         gifter.save {lastGift: new Date(), sentCount}, success: ->
           callback(gifter) if callback
 
-      gifter = new Gifter(oid: gifterId, toAccount: id)
+      gifter = new Gifter(oid: gifterId, toAccount: self.id)
       gifter.fetch success: defaultFn, error: defaultFn
-
 
     @gifts = (criteria, callback) ->
       if typeof criteria is 'function'
         callback = criteria
         criteria = {}
 
-      criteria['toAccount'] = id
+      criteria['toAccount'] = self.id
       (new Gifts()).fetch(conditions: criteria, success: callback)
 
     for criteria in ['unclaimed', 'claimed', 'expired', 'error', 'stolen']
-      do (criteria) =>
-        @gifts[criteria] = (query, callback) =>
+      do (criteria) ->
+        self.gifts[criteria] = (query, callback) ->
           if typeof query is 'function'
             callback = query
             query = {}
           query['status'] = criteria
-          @gifts(query, callback)
+          self.gifts(query, callback)
 
-        @gifts[criteria]['add'] = (attrs, callback) =>
+        self.gifts[criteria]['add'] = (attrs, callback) ->
           if typeof attrs is 'string'
             token = attrs
             attrs = {status: criteria}
@@ -81,20 +105,20 @@ class Account
             attrs.status = criteria
             delete attrs.token
 
-          defaultFn = =>
+          defaultFn = ->
             if criteria isnt 'unclaimed'
               attrs['claimTries'] = (gift.get('claimTries') || 0) + 1
 
             gift.save attrs, success: =>
               # Take care of possible automated claimer
-              @claimFinished() if @giftClaimer && criteria isnt 'unclaimed'
+              self.claimFinished() if self.giftClaimer && criteria isnt 'unclaimed'
 
-              for tabId, tab of @tabs['GPlus'] || []
+              for tabId, tab of self.tabs['GPlus'] || []
                 tab.updateGift(token, criteria)
 
               callback?(gift)
 
-          gift = new Gift({token, toAccount: id})
+          gift = new Gift({token, toAccount: self.id})
           gift.fetch success: defaultFn, error: defaultFn
 
   claimFinished: ->
@@ -206,7 +230,6 @@ class Account
             applySettings()
         , 100
 
-
   hidePageAction: (type, callback, sender) ->
     if @pageActions[sender.tab.id] is type
       chrome.pageAction.hide(sender.tab.id)
@@ -214,51 +237,6 @@ class Account
 
 if window.location.protocol isnt 'chrome-extension:'
   do ->
-    queue = []
-    accountId = null
-    idDiv = document.createElement('div')
-    idDiv.style.display = 'none'
-    idDiv.setAttribute('onclick', '(' + ((el) ->
-      alertIdReady = (id) ->
-        el.setAttribute('oid', id)
-        event = document.createEvent('Events')
-        event.initEvent('gplusid', true, true)
-        el.dispatchEvent(event)
-
-      if OZ_initData?[2]?[0]?
-        alertIdReady(OZ_initData[2][0])
-      else
-        tries = 0
-        postId = (user) ->
-          tries++
-          console.log("Trying to get account id on try #{tries}", user)
-          if user?.id
-            alertIdReady(user.id)
-          else if user?.error?.message is 'quota exceeded'
-            setTimeout((-> google.plusone.api('/people/me', postId)), 1000 * 60 * 5)
-          else if tries < 5
-            setTimeout((-> google.plusone.api('/people/me', postId)), 100)
-
-        console.log("Trying to get account id on try #{tries}")
-
-        if google?.plusone?
-          google.plusone.api '/people/me', postId
-        else
-          setTimeout postId, 100
-    ).toString() + ')(this);')
-    document.body.appendChild(idDiv)
-
-    idDiv.addEventListener 'gplusid', ->
-      Account.id = accountId = idDiv.getAttribute('oid')
-      for item in queue
-        item[0].accountId = accountId
-        chrome.extension.sendRequest(item...)
-      document.body.removeChild(idDiv)
-
-    # Gift google some time to do its login so we don't
-    # hit the url too much, e.g. once unauthed and once authed
-    # setTimeout (-> Event(idDiv).click()), 100
-
     nullFn = ->
 
     walkMethodTree = (anchor, root, prefix = '') ->
@@ -271,18 +249,7 @@ if window.location.protocol isnt 'chrome-extension:'
             else
               callback = nullFn
 
-            # Add the user account identifier from G+
-            signature = [{method: "#{prefix}#{method}", args, accountId}, callback]
-            if accountId
-              try
-                chrome.extension.sendRequest(signature...)
-            else
-              # Wait until it is needed to get the account id
-              if queue.length is 0
-                queue.push signature
-                Event(idDiv).click()
-              else
-                queue.push signature
+            chrome.extension.sendRequest({method: "#{prefix}#{method}", args}, callback)
 
         walkMethodTree(anchor[method], root[method], "#{prefix}#{method}.")
 

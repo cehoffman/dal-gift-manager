@@ -1,10 +1,32 @@
 class GPlus extends TabApi
+  sendId: ->
+    idDiv = document.createElement('div')
+    idDiv.style.display = 'none'
+    idDiv.setAttribute('onclick', '(' + ((el) ->
+      alertIdReady = (id) ->
+        el.setAttribute('oid', id)
+        event = document.createEvent('Events')
+        event.initEvent('user:gplusid', true, true)
+        el.dispatchEvent(event)
+
+      if OZ_initData?[2]?[0]?
+        alertIdReady(OZ_initData[2][0])
+    ).toString() + ')(this);')
+
+    document.body.appendChild(idDiv)
+
+    idDiv.addEventListener 'user:gplusid', =>
+      Account.setId(idDiv.getAttribute('oid'))
+      document.body.removeChild(idDiv)
+
+    Event(idDiv).click()
+
   setup: ->
+    @sendId()
     @content = document.getElementById('content')
     @gifts = {}
     @maxRounds = 5
     @listenForGifts()
-
 
   @api
     updateGift: (token, status, callback) ->
