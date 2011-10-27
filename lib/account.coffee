@@ -8,7 +8,7 @@ class Account
 
   @remove: (id) ->
     tab2account[id]?.claimStopped()
-    accountId = tab2account[id].id
+    accountId = tab2account[id]?.id
     delete tab2account[id]
 
     if accountId
