@@ -207,8 +207,8 @@ class ProgressBar extends TabApi
                 @animate @label, 'opacity', 1.0, 1000
 
             if Math.abs(progress - 100) < 5e-10
-              @label.firstChild.nodeValue = 'Done'
               @percent.innerText = ''
+              @label.firstChild.nodeValue = 'Done'
               @hide()
             else
               @percent.innerText = "#{Math.ceil(progress)}%"
