@@ -166,12 +166,12 @@ class Account
         if totalGifters is 0
           progress = 50
         else
-          progress = (sentGifts + lot.length / 2.0) / totalGifters * 100.0
+          progress = (sentGifts + (lot.length / 4.0)) / totalGifters * 100.0
 
         pbar.showProgress progress
         picker.selectUsers lot, (selected) ->
           if selected.length > 0
-            pbar.showProgress (sentGifts + lot.length) / totalGifters * 100.0
+            pbar.showProgress (sentGifts + (lot.length * 3.0 / 4.0)) / totalGifters * 100.0
             picker.sendGift ->
               gifters.sentGift(oid) for oid in selected
               if all.length > 50
