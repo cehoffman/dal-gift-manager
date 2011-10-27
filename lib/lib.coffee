@@ -43,7 +43,7 @@ class TabApi
             else
               callback = nullFn
 
-            chrome.tabs.sendRequest(@tabId, {method, args, class: @name()}, callback)
+            chrome.tabs.sendRequest(@tabId, {method, args, class: @constructor.name}, callback)
       else
         @::[method] = body
 
@@ -58,22 +58,19 @@ class TabApi
           originalUnload.apply(window, [arguments...]) if originalUnload
 
         chrome.extension.onRequest.addListener (request, sender, callback) ->
-          if request.class is tab.name()
+          if request.class is tab.constructor.name
             tab[request.method]?([request.args..., callback]...)
 
   @enable: ->
 
   constructor: (@tabId) ->
 
-  name: ->
-    @_name ||= @constructor.toString().match(/function\s*([^(\s]+)/)[1]
-
   register: ->
-    Account.registerTab(@name())
+    Account.registerTab(@constructor.name)
 
   unregister: ->
     name = @constructor.toString().match(/function\s*([^(\s]+)/)[1]
-    Account.unregisterTab(@name())
+    Account.unregisterTab(@constructor.name)
 
   setup: ->
 
