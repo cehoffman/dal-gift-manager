@@ -10,13 +10,11 @@ class Account
     tab2account[id]?.claimStopped()
     accountId = tab2account[id].id
     delete tab2account[id]
-    console.log "Removing tab instance for #{id}"
 
     if accountId
       # If at least one tab has this account open in it then keep the
       # account instance around. Otherwise it should be deleted
       return for tabId, account of tab2account when account.id is accountId
-      console.log("Removing last account instance")
       delete accounts[accountId]
 
   @each: (callback) ->
@@ -36,10 +34,8 @@ class Account
 
   setId: (@id, callback, sender) ->
     if accounts[@id]
-      console.log("Setting tab #{sender.tab.id} to existing account data #{@id}")
       tab2account[sender.tab.id] = accounts[@id]
     else
-      console.log("Setting id for #{sender.tab.id} to #{@id}")
       accounts[@id] = this
 
   constructor: ->
