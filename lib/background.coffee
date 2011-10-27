@@ -26,3 +26,10 @@ chrome.pageAction.onClicked.addListener (tab) ->
           account.gifters.add(user.oid, user)
 
 chrome.tabs.onRemoved.addListener Account.remove
+
+# Simple cleanup of old gifts not worth tracking any longer
+(new Gifts()).fetch success: (gifts) ->
+  cutoff = new Date() - 1000 * 60 * 60 * 21
+  for gift in gifts.models
+    gift.destroy() if gift.get('updatedAt') < cutoff
+  undefined
