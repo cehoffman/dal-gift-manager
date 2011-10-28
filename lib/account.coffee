@@ -34,7 +34,6 @@ class Account
 
   setId: (id, callback, sender) ->
     if not accounts[id]
-      console.log(sender.tab.id, 'registering new account', id)
       @id = id
       accounts[id] = this
     tab2account[sender.tab.id] = accounts[id]
