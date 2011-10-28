@@ -93,7 +93,7 @@ class Account
           query['status'] = criteria
           self.gifts(query, callback)
 
-        self.gifts[criteria]['add'] = (attrs, callback) ->
+        self.gifts[criteria]['add'] = (attrs, callback, sender) ->
           if typeof attrs is 'string'
             token = attrs
             attrs = {status: criteria}
@@ -108,7 +108,7 @@ class Account
 
             gift.save attrs, success: ->
               # Take care of possible automated claimer
-              self.claimFinished() if self.giftClaimer && criteria isnt 'unclaimed'
+              self.claimFinished(gift, sender.tab.id) if self.giftClaimer && criteria isnt 'unclaimed'
 
               for tabId, tab of self.tabs['GiftListener'] || []
                 tab.updateGift(token, criteria)
@@ -118,36 +118,45 @@ class Account
           gift = new Gift({token, toAccount: self.id})
           gift.fetch success: defaultFn, error: defaultFn
 
-  claimFinished: ->
+  claimFinished: (updatedGift, tabId) ->
+    pbar = @tabs['ProgressBar']?[tabId] || {showProgress: (_, cb) -> cb?() }
+
     # Get a single unclaimed gift
     @gifts.unclaimed (gifts) =>
       gifts.comparator = (gift) -> gift.get('createdAt')
-      # If there was no gift found look for gifts that had
-      # errors when trying to claim and pick any that have
-      # not been tried 5 times yet and mark them as unclaimed
-      # again. The first one found kicks off the claim machine
-      # on success and ends it all on error
-      if not (gift = gifts.sort().at(gifts.length - 1))
+      # If there was no gift found look for gifts that had errors when trying
+      # to claim and pick any that have not been tried 5 times yet and mark
+      # them as unclaimed again. The first one found kicks off the claim
+      # machine on success and ends it all on error
+      unless gift = gifts.sort().at(gifts.length - 1)
         @gifts.error (gifts) =>
             retryable = (gift for gift in gifts.models when (gift.get('claimTries') || 0) < 5)
+
             if retryable.length > 0
-              @gifts.unclaimed.add retryable[0].get('token'), @claimFinished.bind(@)
-                # error: => chrome.tabs.remove(@giftClaimer.id)
+              @gifts.unclaimed.add retryable[0].get('token'), (gift) => @claimFinished(gift, tabId)
               @gifts.unclaimed.add gift.get('token') for gift in retryable[1..-1]
             else
+              pbar.showProgress(100)
               chrome.tabs.remove(@giftClaimer.id) if @giftClaimer
-          # error: =>
-          #   chrome.tabs.remove(@giftClaimer.id)
       else
         if @giftClaimer
-          @tabs['DAL']?[@giftClaimer.id]?.claimGift(gift.get('token'))
-          # chrome.tabs.update(@giftClaimer.id, url: gift.url())
-        else
-          chrome.tabs.create({url: gift.url(), selected: false}, (tab) => @giftClaimer = tab)
-      # error: =>
-      #   chrome.tabs.remove(@giftClaimer.id) if @giftClaimer
+          # Increment progress if successful claim or won't be tried again
+          if updatedGift.get('status') is 'claimed' || updatedGift.get('claimTries') >= 5
+            @giftClaimer.totalClaimed++
 
-  claimStart: @::claimFinished
+          # Should never reach 100 because last gift to claim closes tab in
+          # above branch but because error gits are added to lot and were not
+          # known when computing totalGifts a safety net of 99 max is put in
+          pbar.showProgress Math.min(@giftClaimer.totalClaimed * 100.0 / @giftClaimer.totalGifts, 99)
+          @tabs['DAL']?[@giftClaimer.id]?.claimGift(gift.get('token'))
+        else
+          chrome.tabs.create url: gift.url(), selected: false, (tab) =>
+            @giftClaimer = tab
+            @giftClaimer.totalGifts = gifts.length
+            @giftClaimer.totalClaimed = 0
+
+  claimStart: (callback, sender) ->
+    @claimFinished(null, sender.tab.id)
 
   claimStopped: (tabId) ->
     @giftClaimer = undefined if @giftClaimer?.id is tabId
