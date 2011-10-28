@@ -48,6 +48,7 @@ class DAL extends TabApi
 
 
   hookAutoGiftSending: ->
+    self = this
     giftSending = setInterval ->
       return unless tabs = document.getElementById('tabs')
       clearInterval giftSending
@@ -100,8 +101,8 @@ class DAL extends TabApi
       link.innerText = 'Auto Gift'
       tabs.insertBefore(link, tabs.childNodes[0])
 
-      window.addEventListener 'user:autogift', (event) =>
-        Account.sendGifts(@sentGifts, @totalGifters)
+      window.addEventListener 'user:autogift', (event) ->
+        Account.sendGifts(self.sentGifts, self.totalGifters)
 
     , 1000
 
