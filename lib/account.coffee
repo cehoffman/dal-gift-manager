@@ -32,11 +32,12 @@ class Account
       setTitle:
         title: 'Claim your DAL gifts'
 
-  setId: (@id, callback, sender) ->
-    if not accounts[@id]
-      console.log(sender.tab.id, 'registering new account', @id)
-      accounts[@id] = this
-    tab2account[sender.tab.id] = accounts[@id]
+  setId: (id, callback, sender) ->
+    if not accounts[id]
+      console.log(sender.tab.id, 'registering new account', id)
+      @id = id
+      accounts[id] = this
+    tab2account[sender.tab.id] = accounts[id]
 
   constructor: ->
     self = this
