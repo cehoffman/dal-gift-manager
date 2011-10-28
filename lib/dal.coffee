@@ -2,18 +2,7 @@ class DAL extends TabApi
   setup: ->
     @register()
 
-    if token = @giftClaimToken()
-      @reportGiftStatus (message) ->
-        if /\b(successfully|already)\b/.test message
-          Account.gifts.claimed.add(token)
-        else if /\berror\b/i.test message
-          Account.gifts.error.add(token)
-        else if /\bexpired\b/.test message
-          Account.gifts.expired.add(token)
-        else if /\bstolen\b/.test message
-          # We couldn't find that gift in our databases. A hurlock must have stolen it!
-          Account.gifts.stolen.add(token)
-
+    @getGiftStatus(token, @reportGiftStatus) if token = @giftClaimToken()
     @hookAutoGiftSending()
 
   giftClaimToken: ->
@@ -32,17 +21,31 @@ class DAL extends TabApi
 
     token
 
-  reportGiftStatus: (callback) ->
+  getGiftStatus: (token, callback) ->
     tries = 0
+    callback = (->) unless typeof callback is 'function'
+
     giftCheck = setInterval ->
       confirmation = document.getElementsByClassName('giftPage')
       if confirmation.length is 1
         clearInterval giftCheck
-        callback?(confirmation[0].innerText)
+        callback(token, confirmation[0].innerText)
       else if ++tries > 15
         clearInterval giftCheck
-        callback?('error')
+        callback(token, 'error')
     , 1000
+
+  reportGiftStatus: (token, message) ->
+    if /\b(successfully|already)\b/.test message
+      Account.gifts.claimed.add(token)
+    else if /\berror\b/i.test message
+      Account.gifts.error.add(token)
+    else if /\bexpired\b/.test message
+      Account.gifts.expired.add(token)
+    else if /\bstolen\b/.test message
+      # We couldn't find that gift in our databases. A hurlock must have stolen it!
+      Account.gifts.stolen.add(token)
+
 
   hookAutoGiftSending: ->
     giftSending = setInterval ->
@@ -103,6 +106,30 @@ class DAL extends TabApi
     , 1000
 
   @api
+    claimGift: (token) ->
+      giftDiv = document.createElement('div')
+      giftDiv.style.display = 'none'
+      giftDiv.setAttribute 'onclick', '(' + ((el, giftToken) ->
+        requestGifting true,
+          url: "#{giftingParams.url}/acceptedGift"
+          data: {giftToken, signed_request: giftingParams.data.signed_request}
+          success: (data) ->
+            onGiftContainerShow(data)
+            $('#gameContent').show('slow', -> iframes.resize(height: document.body.scrollHeight))
+
+            event = document.createEvent('Events')
+            event.initEvent('user:gift-claim', false, true)
+            el.dispatchEvent(event)
+        ).toString() + ")(this, #{JSON.stringify(token)});"
+
+      document.body.appendChild(giftDiv)
+
+      giftDiv.addEventListener 'user:gift-claim', (event) =>
+        @getGiftStatus(token, @reportGiftStatus)
+        giftDiv.parentElement.removeChild(giftDiv)
+
+      Event(giftDiv).click()
+
     continueSendingGifts: (@sentGifts, @totalGifters) ->
       document.getElementById('feedback').style.display = 'none'
       Event(document.getElementById('dal-send-autogift')).click()

@@ -139,7 +139,8 @@ class Account
           #   chrome.tabs.remove(@giftClaimer.id)
       else
         if @giftClaimer
-          chrome.tabs.update(@giftClaimer.id, url: gift.url())
+          @tabs['DAL']?[@giftClaimer.id]?.claimGift(gift.get('token'))
+          # chrome.tabs.update(@giftClaimer.id, url: gift.url())
         else
           chrome.tabs.create({url: gift.url(), selected: false}, (tab) => @giftClaimer = tab)
       # error: =>
