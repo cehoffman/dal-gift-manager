@@ -34,8 +34,9 @@ class Account
 
   setId: (id, callback, sender) ->
     if not accounts[id]
-      @id = id
-      accounts[id] = this
+      @id ||= id
+      accounts[id] = if @id isnt id then new @constructor() else this
+      accounts[id].id ||= id
     tab2account[sender.tab.id] = accounts[id]
 
   constructor: ->
