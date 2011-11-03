@@ -32,13 +32,13 @@ chrome.tabs.onRemoved.addListener Account.remove
 
 # Simple cleanup of old gifts not worth tracking any longer
 (new Gifts()).fetch success: (gifts) ->
-  cutoff = new Date() - 1000 * 60 * 60 * 21
+  cutoff = new Date() - 1000 * 60 * 60 * 24 * 21
   for gift in [gifts.models...] when gift.get('updatedAt') < cutoff
     gift.destroy()
   undefined
 
 (new Gifters()).fetch success: (gifters) ->
-  cutoff = new Date() - 1000 * 60 * 60 * 21
+  cutoff = new Date() - 1000 * 60 * 60 * 24 * 21
   for gifter in [gifters.models...] when not gifter.isGiftable() && gifter.get('updatedAt') < cutoff
     gifter.destroy()
   undefined
