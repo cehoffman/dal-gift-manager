@@ -189,7 +189,7 @@ class Gifter extends TimestampModel
     "#{toAccount}-#{oid}" if oid && toAccount
 
   isGiftable: ->
-    @get('active') && (!@get('lastGift') || @get('lastGift') < (new Date() - 1000 * 60 * 60 * 24))
+    @get('active') && (!@get('lastGift') || @get('lastGift') < (new Date() - 1000 * 60 * 60 * 22))
 
 class Gifters extends Backbone.Collection
   model: Gifter
